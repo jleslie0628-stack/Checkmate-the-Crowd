@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1 vs 100 Chess Prototype</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #222;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        #lobby {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        .btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        #joinOneBtn { background-color: #f1f2f6; color: #2f3542; }
+        #joinOneBtn:disabled { background-color: #747d8c; cursor: not-allowed; }
+        #join100Btn { background-color: #2f3542; color: white; border: 2px solid white; }
+        
+        #gameContainer { display: none; text-align: center; width: 850px; }
+        
+        /* Side-by-side split layout styling */
+        .game-layout {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+        
+        #board-wrapper { width: 400px; }
+        #board { width: 400px; }
+        
+        /* Chat Box styling */
+        #chat-wrapper {
+            width: 400px;
+            background: #333;
+            border-radius: 5px;
+            padding: 15px;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        #chat-box {
+            height: 300px;
+            background: #111;
+            border-radius: 3px;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        #chat-input {
+            width: 70%;
+            padding: 8px;
+            border: none;
+            border-radius: 3px;
+        }
+        #chat-send {
+            width: 25%;
+            padding: 8px;
+            background: #ffa502;
+            border: none;
+            color: black;
+            font-weight: bold;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        #myRole { font-size: 18px; color: #ffa502; margin-bottom: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="lobby">
+        <h2>Choose Your Side</h2>
+        <button id="joinOneBtn" class="btn">Play as "The One" (White)</button>
+        <button id="join100Btn" class="btn">Join "The 100" (Black Crowd)</button>
+    </div>
+
+    <div id="gameContainer">
+        <h1>1 vs 100 Chess</h1>
+        <div id="myRole">Role: Assigning...</div>
+        <div id="status" style="font-size: 20px; font-weight: bold;">Waiting for server...</div>
+        <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30s</div>
+        
+        <div class="game-layout">
+            
+            <div id="board-wrapper">
+                <div id="board"></div>
+                <div id="voteDisplay" style="margin-top: 15px; color: #aaa; font-family: monospace; font-size: 16px;"></div>
+            </div>
+
+            <div id="chat-wrapper">
+                <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
+                <div id="chat-box"></div>
+                <div id="chat-controls">
+                    <input type="text" id="chat-input" placeholder="Discuss tactics...">
+                    <button id="chat-send">Send</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        const socket = io();
+        let turn = 'w';
+        let myPlayerRole = null;
+
+        const board = Chessboard('board', {
+            draggable: true,
+            position: 'start',
+            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+            onDrop: onDrop
+        });
+
+        document.getElementById('joinOneBtn').addEventListener('click', () => { socket.emit('claimRole', 'theOne'); });
+        document.getElementById('join100Btn').addEventListener('click', () => { socket.emit('claimRole', 'the100'); });
+
+        socket.on('roleStatus', (status) => {
+            document.getElementById('joinOneBtn').disabled = status.theOneTaken;
+            document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled)' : 'Play as "The One" (White)';
+        });
+
+        socket.on('roleAssigned', (role) => {
+            myPlayerRole = role;
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            
+            if (role === 'theOne') {
+                document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
+                // Eavesdrop restriction: Disable input for The One so they can only look!
+                document.getElementById('chat-input').disabled = true;
+                document.getElementById('chat-input').placeholder = "You are eavesdropping...";
+                document.getElementById('chat-send').disabled = true;
+                document.getElementById('chat-send').style.background = '#555';
+            } else {
+                document.getElementById('myRole').innerText = 'Your Role: THE 100 👥';
+            }
+        });
+
+        // Chat Submission Logic
+        function sendMsg() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (text.length > 0) {
+                socket.emit('sendChatMessage', text);
+                input.value = '';
+            }
+        }
+
+        document.getElementById('chat-send').addEventListener('click', sendMsg);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMsg();
+        });
+
+        // Listen for incoming chat messages to render
+        socket.on('broadcastChatMessage', (data) => {
+            const chatBox = document.getElementById('chat-box');
+            const color = (data.role === 'The One') ? '#f1f2f6' : '#ffa502';
+            
+            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
+            // Automatically scroll chat box to the absolute bottom on new text
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        socket.on('roleDenied', (msg) => { alert(msg); });
+        socket.on('invalidRoleAction', (msg) => { alert(msg); });
+
+        function onDrop (source, target) {
+            if (source === target) return;
+            socket.emit('submitMove', { from: source, to: target });
+            return 'snapback';
+        }
+
+        socket.on('gameState', (fen) => {
+            board.position(fen);
+            turn = fen.split(' ')[1]; 
+            document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
+        });
+
+        socket.on('invalidMove', () => { alert('Illegal move! Try again.'); });
+        socket.on('timeUpdate', (secondsLeft) => { document.getElementById('timer').innerText = secondsLeft + 's'; });
+
+        socket.on('voteUpdate', (votes) => {
+            const display = document.getElementById('voteDisplay');
+            if (Object.keys(votes).length === 0) {
+                display.innerHTML = "No votes cast yet.";
+                return;
+            }
+            let html = "<strong>Current Crowd Votes:</strong><br>";
+            for (const move in votes) {
+                html += `• ${move}: ${votes[move]} vote(s)<br>`;
+            }
+            display.innerHTML = html;
+        });
+    </script>
+</body>
+</html>
