@@ -6,9 +6,13 @@ const { Chess } = require('chess.js');
 
 const PORT = process.env.PORT || 3000;
 const chess = new Chess();
+
+// State management
 let votes = {};
+let userVotes = {}; // Tracks: { socketId: { move: "e7e5" } }
 let theOneSocketId = null; 
 
+// Timer configuration
 const TURN_TIME_LIMIT = 30; 
 let timeRemaining = TURN_TIME_LIMIT;
 let timerInterval = null;
@@ -37,6 +41,7 @@ function startTimer() {
 
 function handleTurnTimeout() {
     if (chess.turn() === 'b') {
+        // Black's turn (The 100) -> Tally votes
         if (Object.keys(votes).length > 0) {
             const winningMoveStr = Object.keys(votes).reduce((a, b) => votes[a] > votes[b] ? a : b);
             const fromSquare = winningMoveStr.substring(0, 2);
@@ -54,6 +59,7 @@ function handleTurnTimeout() {
             }
         }
     } else {
+        // White's turn (The One) -> Force random move
         const moves = chess.moves({ verbose: true });
         if (moves.length > 0) {
             const randomMove = moves[Math.floor(Math.random() * moves.length)];
@@ -61,7 +67,9 @@ function handleTurnTimeout() {
         }
     }
 
+    // Reset game state for next turn
     votes = {};
+    userVotes = {}; 
     io.emit('gameState', chess.fen());
     io.emit('voteUpdate', votes);
     startTimer();
@@ -87,26 +95,16 @@ io.on('connection', (socket) => {
         }
     });
 
-    // CHAT ENGINE: Listen for incoming messages
     socket.on('sendChatMessage', (text) => {
-        let senderRole = 'The 100';
-        
-        // Determine who sent it
-        if (socket.id === theOneSocketId) {
-            senderRole = 'The One';
-        }
-
-        // Broadcast the message text and who sent it to everyone
-        io.emit('broadcastChatMessage', {
-            role: senderRole,
-            message: text
-        });
+        let senderRole = (socket.id === theOneSocketId) ? 'The One' : 'The 100';
+        io.emit('broadcastChatMessage', { role: senderRole, message: text });
     });
 
     socket.on('submitMove', (moveData) => {
         const moveStr = moveData.from + moveData.to;
 
         if (chess.turn() === 'w') {
+            // White's Logic
             if (socket.id !== theOneSocketId) {
                 socket.emit('invalidRoleAction', "It is White's turn, but you are not 'The One'!");
                 return;
@@ -115,6 +113,7 @@ io.on('connection', (socket) => {
                 const move = chess.move({ from: moveData.from, to: moveData.to, promotion: 'q' });
                 if (move) {
                     votes = {};
+                    userVotes = {};
                     io.emit('gameState', chess.fen());
                     io.emit('voteUpdate', votes);
                     startTimer(); 
@@ -125,6 +124,7 @@ io.on('connection', (socket) => {
                 socket.emit('invalidMove');
             }
         } else {
+            // Black's Logic
             if (socket.id === theOneSocketId) {
                 socket.emit('invalidRoleAction', "You are 'The One'. You cannot vote!");
                 return;
@@ -134,7 +134,14 @@ io.on('connection', (socket) => {
                 const isValid = tempChess.move({ from: moveData.from, to: moveData.to, promotion: 'q' });
 
                 if (isValid) {
+                    // Update user's specific vote
+                    if (userVotes[socket.id]) {
+                        const oldMove = userVotes[socket.id].move;
+                        if (votes[oldMove] > 0) votes[oldMove]--;
+                    }
+                    userVotes[socket.id] = { move: moveStr };
                     votes[moveStr] = (votes[moveStr] || 0) + 1;
+
                     io.emit('voteUpdate', votes);
                 } else {
                     socket.emit('invalidMove');
@@ -150,11 +157,12 @@ io.on('connection', (socket) => {
             theOneSocketId = null;
             io.emit('roleStatus', { theOneTaken: false });
         }
+        delete userVotes[socket.id];
     });
 });
 
 startTimer();
 
 http.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
