@@ -80,7 +80,16 @@ function handleTurnTimeout() {
 }
 
 io.on('connection', (socket) => {
-    socket.emit('gameState', chess.fen());
+    socket.emit('gameState', (fen) => {
+	document.getElementById('restartBtn').style.display = 'none';
+	document.getElementById('resignStatus').innerText = '';
+
+	//Ensure board exists before updating
+	if (board) {
+	   board.position(fen);
+	}
+    });
+
     socket.emit('voteUpdate', votes);
     socket.emit('timeUpdate', timeRemaining);
     socket.emit('roleStatus', { theOneTaken: theOneSocketId !== null });
