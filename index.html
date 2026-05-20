@@ -195,13 +195,14 @@
 
         // Listen for incoming chat messages to render
         socket.on('broadcastChatMessage', (data) => {
-            const chatBox = document.getElementById('chat-box');
-            const color = (data.role === 'The One') ? '#f1f2f6' : '#ffa502';
-            
-            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
-            // Automatically scroll chat box to the absolute bottom on new text
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
+    const chatBox = document.getElementById('chat-box');
+    let color = '#ffa502'; // default
+    if (data.role === 'The One') color = '#f1f2f6';
+    if (data.role === 'Game System') color = '#ff4757'; // Red for alerts!
+    
+    chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
 
         socket.on('roleDenied', (msg) => { alert(msg); });
         socket.on('invalidRoleAction', (msg) => { alert(msg); });
