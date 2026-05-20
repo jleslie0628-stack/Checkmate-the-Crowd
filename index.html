@@ -40,7 +40,6 @@
         
         #gameContainer { display: none; text-align: center; width: 850px; }
         
-        /* Side-by-side split layout styling */
         .game-layout {
             display: flex;
             flex-direction: row;
@@ -52,7 +51,6 @@
         #board-wrapper { width: 400px; }
         #board { width: 400px; }
         
-        /* Chat Box styling */
         #chat-wrapper {
             width: 400px;
             background: #333;
@@ -88,8 +86,6 @@
         }
         
         #myRole { font-size: 18px; color: #ffa502; margin-bottom: 5px; font-weight: bold; }
-
-        /* Added Styling for Controls & Statuses */
         #controls-wrapper { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         #resignBtn { background-color: #ff4757; color: white; }
         #restartBtn { background-color: #2ed573; color: white; display: none; }
@@ -111,7 +107,6 @@
         <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30s</div>
         
         <div class="game-layout">
-            
             <div id="board-wrapper">
                 <div id="board"></div>
                 <div id="voteDisplay" style="margin-top: 15px; color: #aaa; font-family: monospace; font-size: 16px;"></div>
@@ -125,7 +120,6 @@
                     <button id="chat-send">Send</button>
                 </div>
             </div>
-
         </div>
 
         <div id="controls-wrapper">
@@ -153,8 +147,6 @@
 
         document.getElementById('joinOneBtn').addEventListener('click', () => { socket.emit('claimRole', 'theOne'); });
         document.getElementById('join100Btn').addEventListener('click', () => { socket.emit('claimRole', 'the100'); });
-
-        // System Action Event Click Handlers
         document.getElementById('resignBtn').addEventListener('click', () => { socket.emit('voteResign'); });
         document.getElementById('restartBtn').addEventListener('click', () => { socket.emit('restartGame'); });
 
@@ -170,7 +162,6 @@
             
             if (role === 'theOne') {
                 document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
-                // Eavesdrop restriction: Disable input for The One so they can only look!
                 document.getElementById('chat-input').disabled = true;
                 document.getElementById('chat-input').placeholder = "You are eavesdropping...";
                 document.getElementById('chat-send').disabled = true;
@@ -180,7 +171,6 @@
             }
         });
 
-        // Chat Submission Logic
         function sendMsg() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
@@ -195,12 +185,9 @@
             if (e.key === 'Enter') sendMsg();
         });
 
-        // Listen for incoming chat messages to render
         socket.on('broadcastChatMessage', (data) => {
             const chatBox = document.getElementById('chat-box');
-            
-            // Assign system colors (Referee Red vs Roles)
-            let color = '#ffa502'; // default The 100
+            let color = '#ffa502'; 
             if (data.role === 'The One') color = '#f1f2f6';
             if (data.role === 'Game System') color = '#ff4757';
             
@@ -208,7 +195,6 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         });
 
-        // Tracking Resignation metrics cleanly
         socket.on('resignProgress', (data) => {
             const statusDiv = document.getElementById('resignStatus');
             if (statusDiv) {
@@ -216,7 +202,6 @@
             }
         });
 
-        // Game State Engine Handlers
         socket.on('gameOver', () => {
             document.getElementById('restartBtn').style.display = 'inline-block';
         });
@@ -234,8 +219,6 @@
             board.position(fen);
             turn = fen.split(' ')[1]; 
             document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
-            
-            // Auto hide old components on fresh server setups or round increments
             document.getElementById('restartBtn').style.display = 'none';
             document.getElementById('resignStatus').innerText = '';
         });
