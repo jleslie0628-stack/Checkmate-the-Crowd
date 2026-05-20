@@ -1,136 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Checkmate the Crowd</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-
     <style>
-        body { font-family: sans-serif; background-color: #222; color: white; margin: 0; padding: 20px; text-align: center; user-select: none; overscroll-behavior: none; }
-        #lobby { margin-top: 50px; }
+        body { background: #222; color: white; font-family: sans-serif; text-align: center; }
         #gameContainer { display: none; margin-top: 20px; }
-       .game-layout { 
-    display: flex; 
-    flex-direction: row; 
-    justify-content: center; 
-    align-items: flex-start; /* Keeps things aligned to the top */
-    gap: 40px; /* Gives the board and chat some breathing room */
-    max-width: 900px; 
-    margin: 0 auto; 
-}
-        #board { width: 400px; touch-action: none; margin: 0 auto; }
-        #chat-wrapper { width: 300px; background: #333; padding: 15px; border-radius: 5px; text-align: left; }
-        #chat-box { height: 300px; background: #111; overflow-y: auto; padding: 10px; margin-bottom: 10px; font-size: 14px; }
-        .btn { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
-        #resignBtn { background: #ff4757; color: white; }
-        #restartBtn { background: #2ed573; color: white; display: none; }
-        
-        @media (max-width: 850px) {
-            .game-layout { flex-direction: column; align-items: center; }
-            #board { width: 95vw; height: 95vw; }
-            #chat-wrapper { width: 95vw; }
-        }
+        #board { width: 400px; margin: 0 auto; }
+        #chat-wrapper { width: 300px; background: #333; padding: 15px; margin: 0 auto; }
+        #chat-box { height: 200px; overflow-y: auto; background: #111; margin-bottom: 10px; }
+        #timerDisplay { font-size: 24px; color: #f1c40f; margin: 10px; }
     </style>
 </head>
 <body>
-
     <div id="lobby">
         <h1>Checkmate the Crowd</h1>
-        <button id="joinOne" class="btn" style="background:#f1f2f6; color:black;">Play as The One</button>
-        <button id="join100" class="btn" style="background:#2f3542;">Play as The 100</button>
+        <button onclick="socket.emit('claimRole', 'theOne')">Play as The One</button>
+        <button onclick="socket.emit('claimRole', 'the100')">Play as The 100</button>
     </div>
 
     <div id="gameContainer">
         <h2 id="myRole"></h2>
-        <div class="game-layout">
-            <div id="board"></div>
-            <div id="chat-wrapper">
-                <div id="chat-box"></div>
-                <input id="chat-input" placeholder="Message..." style="width:70%;">
-                <button id="chat-send" style="width:25%;">Send</button>
-                <div id="timerDisplay">Time: 30</div>
-                <div id="resignStatus"></div>
-            </div>
+        <div id="timerDisplay">Time: 30</div>
+        <div id="board"></div>
+        <div id="chat-wrapper">
+            <div id="chat-box"></div>
+            <input id="chat-input" placeholder="Message...">
+            <button id="chat-send">Send</button>
         </div>
-        <div id="controls" style="margin-top:20px;">
-            <button id="resignBtn" class="btn">Vote to Resign</button>
-            <div id="resignStatus"></div>
-            <button id="restartBtn" class="btn">Restart Match</button>
-        </div>
+        <button id="resignBtn">Vote to Resign</button>
+        <div id="resignStatus"></div>
+        <button id="restartBtn" style="display:none">Restart Match</button>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script>
         const socket = io();
         let board = null;
 
-        // Role Logic
-        document.getElementById('joinOne').onclick = () => socket.emit('claimRole', 'theOne');
-        document.getElementById('join100').onclick = () => socket.emit('claimRole', 'the100');
-
         socket.on('roleAssigned', (role) => {
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
-            document.getElementById('myRole').innerText = "Playing as: " + (role === 'theOne' ? "The One" : "The 100");
-            
-            board = Chessboard('board', {
-                draggable: true,
-                position: 'start',
-                onDrop: (s, t) => { socket.emit('submitMove', { from: s, to: t }); return 'trash'; }
-            });
-        });
-
-        // Add a container for the timer in your HTML if you haven't:
-        // <div id="timerDisplay" style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Time: 30</div>
-
-        socket.on('timeUpdate', (time) => {
-        document.getElementById('timerDisplay').innerText = `Time: ${time}`;
-        });
-        // Chat Logic
-        document.getElementById('chat-send').onclick = () => {
-            const input = document.getElementById('chat-input');
-            socket.emit('sendChatMessage', input.value);
-            input.value = '';
-        };
-        // Ensure this code is inside your <script>
-        document.getElementById('chat-send').onclick = () => {
-        const input = document.getElementById('chat-input');
-        if (input.value.trim() !== "") {
-        socket.emit('sendChatMessage', input.value);
-        input.value = '';
-        }
-    };
-        socket.on('broadcastChatMessage', (data) => {
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<p><strong>${data.role}:</strong> ${data.message}</p>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
-        // Example: Safe Timer Update
-        socket.on('timeUpdate', (time) => {
-            const timerDisplay = document.getElementById('timerDisplay');
-            if (timerDisplay) { // Only run if the element exists!
-                timerDisplay.innerText = `Time: ${time}`;
+            if (role === 'theOne') {
+                document.getElementById('chat-input').style.display = 'none';
+                document.getElementById('chat-send').style.display = 'none';
             }
+            board = Chessboard('board', { draggable: true, position: 'start', onDrop: (s, t) => {
+                socket.emit('submitMove', { from: s, to: t });
+                return 'trash';
+            }});
         });
 
-        // Example: Safe Resign Status Update
-        socket.on('resignProgress', (data) => {
-            const resignStatus = document.getElementById('resignStatus');
-            if (resignStatus) {
-            resignStatus.innerText = `Resign votes: ${data.count}/${data.needed}`;
-            }
-        });
-        // Game State Logic
+        socket.on('timeUpdate', (t) => { if(document.getElementById('timerDisplay')) document.getElementById('timerDisplay').innerText = `Time: ${t}`; });
         socket.on('gameState', (fen) => { if(board) board.position(fen); });
+        socket.on('broadcastChatMessage', (d) => {
+            document.getElementById('chat-box').innerHTML += `<p><strong>${d.role}:</strong> ${d.message}</p>`;
+        });
+
+        document.getElementById('chat-send').onclick = () => {
+            socket.emit('sendChatMessage', document.getElementById('chat-input').value);
+            document.getElementById('chat-input').value = '';
+        };
+
+        socket.on('gameOver', () => document.getElementById('restartBtn').style.display = 'inline-block');
+        socket.on('restartGame', () => document.getElementById('restartBtn').style.display = 'none');
         document.getElementById('resignBtn').onclick = () => socket.emit('voteResign');
         document.getElementById('restartBtn').onclick = () => socket.emit('restartGame');
-        socket.on('gameOver', () => document.getElementById('restartBtn').style.display = 'inline-block');
-        socket.on('resignProgress', (d) => document.getElementById('resignStatus').innerText = `Votes: ${d.count}/${d.needed}`);
     </script>
 </body>
 </html>
