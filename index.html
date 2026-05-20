@@ -83,13 +83,26 @@
             });
         });
 
+        // Add a container for the timer in your HTML if you haven't:
+        // <div id="timerDisplay" style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Time: 30</div>
+
+        socket.on('timeUpdate', (time) => {
+        document.getElementById('timerDisplay').innerText = `Time: ${time}`;
+        });
         // Chat Logic
         document.getElementById('chat-send').onclick = () => {
             const input = document.getElementById('chat-input');
             socket.emit('sendChatMessage', input.value);
             input.value = '';
         };
-
+        // Ensure this code is inside your <script>
+        document.getElementById('chat-send').onclick = () => {
+        const input = document.getElementById('chat-input');
+        if (input.value.trim() !== "") {
+        socket.emit('sendChatMessage', input.value);
+        input.value = '';
+        }
+    };
         socket.on('broadcastChatMessage', (data) => {
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML += `<p><strong>${data.role}:</strong> ${data.message}</p>`;

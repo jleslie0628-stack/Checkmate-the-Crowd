@@ -105,7 +105,11 @@ io.on('connection', (socket) => {
         io.emit('gameState', chess.fen());
         startTimer();
     });
-
+    // Ensure this is in your server.js inside io.on('connection')
+    socket.on('sendChatMessage', (text) => {
+        let senderRole = (socket.id === theOneSocketId) ? 'The One' : 'The 100';
+        io.emit('broadcastChatMessage', { role: senderRole, message: text });
+    });
     socket.on('submitMove', (moveData) => {
         if (chess.turn() === 'w' && socket.id === theOneSocketId) {
             chess.move({ from: moveData.from, to: moveData.to, promotion: 'q' });
