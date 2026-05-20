@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkmate the Crowd Prototype</title>
+    <title>1 vs 100 Chess Prototype</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
     <style>
         body {
@@ -14,17 +14,30 @@
             background-color: #222;
             color: white;
             margin: 0;
-            padding: 10px; /* Reduced padding slightly for mobile breathing room */
+            padding: 10px;
         }
         #lobby {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 50px;
+            margin-top: 30px;
             background: #333;
             padding: 30px;
             border-radius: 10px;
+            max-width: 450px;
+            width: 90%;
+            box-sizing: border-box;
         }
+        
+        /* LOGO STYLING: Ensures it stays sharp and responsive */
+        .game-logo {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
         .btn {
             padding: 15px 30px;
             font-size: 18px;
@@ -33,20 +46,15 @@
             border: none;
             border-radius: 5px;
             font-weight: bold;
+            width: 100%; /* Keeps buttons uniform under the logo */
+            max-width: 320px;
         }
         #joinOneBtn { background-color: #f1f2f6; color: #2f3542; }
         #joinOneBtn:disabled { background-color: #747d8c; cursor: not-allowed; }
         #join100Btn { background-color: #2f3542; color: white; border: 2px solid white; }
         
-        /* FIX 1: Max-width instead of fixed width lets it shrink on small screens */
-        #gameContainer { 
-            display: none; 
-            text-align: center; 
-            width: 100%;
-            max-width: 850px; 
-        }
+        #gameContainer { display: none; text-align: center; width: 100%; max-width: 850px; }
         
-        /* Side-by-side split layout styling */
         .game-layout {
             display: flex;
             flex-direction: row;
@@ -59,7 +67,6 @@
         #board-wrapper { width: 400px; }
         #board { width: 400px; }
         
-        /* Chat Box styling */
         #chat-wrapper {
             width: 400px;
             background: #333;
@@ -100,36 +107,25 @@
         #restartBtn { background-color: #2ed573; color: white; display: none; }
         #resignStatus { color: #ff7f50; font-weight: bold; font-size: 14px; }
 
-        /* FIX 2: Mobile Media Query Rules */
         @media (max-width: 850px) {
-            body {
-                padding: 10px;
-            }
-            .game-layout {
-                flex-direction: column; /* Stack board on top, chat on bottom */
-                align-items: center;
-                gap: 15px;
-            }
-            #board-wrapper, #board, #chat-wrapper {
-                width: 95vw; /* Make components match the phone screen width */
-                max-width: 400px; /* Prevent it from getting absurdly huge on small tablets */
-            }
-            #chat-input {
-                width: 65%; /* Tweak inputs to sit nicely on tiny screen widths */
-            }
+            body { padding: 10px; }
+            .game-layout { flex-direction: column; align-items: center; gap: 15px; }
+            #board-wrapper, #board, #chat-wrapper { width: 95vw; max-width: 400px; }
+            #chat-input { width: 65%; }
         }
     </style>
 </head>
 <body>
 
     <div id="lobby">
+        <img src="Logo.jpg" alt="Checkmate the Crowd Logo" class="game-logo">
         <h2>Choose Your Side</h2>
         <button id="joinOneBtn" class="btn">Play as "The One" (White)</button>
         <button id="join100Btn" class="btn">Join "The 100" (Black Crowd)</button>
     </div>
 
     <div id="gameContainer">
-        <h1>Checkmate the Crowd</h1>
+        <h1>1 vs 100 Chess</h1>
         <div id="myRole">Role: Assigning...</div>
         <div id="status" style="font-size: 20px; font-weight: bold;">Waiting for server...</div>
         <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30s</div>
