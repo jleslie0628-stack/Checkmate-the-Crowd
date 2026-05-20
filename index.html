@@ -14,7 +14,7 @@
             background-color: #222;
             color: white;
             margin: 0;
-            padding: 20px;
+            padding: 10px; /* Reduced padding slightly for mobile breathing room */
         }
         #lobby {
             display: flex;
@@ -38,19 +38,28 @@
         #joinOneBtn:disabled { background-color: #747d8c; cursor: not-allowed; }
         #join100Btn { background-color: #2f3542; color: white; border: 2px solid white; }
         
-        #gameContainer { display: none; text-align: center; width: 850px; }
+        /* FIX 1: Max-width instead of fixed width lets it shrink on small screens */
+        #gameContainer { 
+            display: none; 
+            text-align: center; 
+            width: 100%;
+            max-width: 850px; 
+        }
         
+        /* Side-by-side split layout styling */
         .game-layout {
             display: flex;
             flex-direction: row;
             justify-content: space-between;
             align-items: flex-start;
             margin-top: 20px;
+            gap: 20px;
         }
         
         #board-wrapper { width: 400px; }
         #board { width: 400px; }
         
+        /* Chat Box styling */
         #chat-wrapper {
             width: 400px;
             background: #333;
@@ -69,7 +78,7 @@
             font-size: 14px;
         }
         #chat-input {
-            width: 70%;
+            width: 68%;
             padding: 8px;
             border: none;
             border-radius: 3px;
@@ -90,6 +99,25 @@
         #resignBtn { background-color: #ff4757; color: white; }
         #restartBtn { background-color: #2ed573; color: white; display: none; }
         #resignStatus { color: #ff7f50; font-weight: bold; font-size: 14px; }
+
+        /* FIX 2: Mobile Media Query Rules */
+        @media (max-width: 850px) {
+            body {
+                padding: 10px;
+            }
+            .game-layout {
+                flex-direction: column; /* Stack board on top, chat on bottom */
+                align-items: center;
+                gap: 15px;
+            }
+            #board-wrapper, #board, #chat-wrapper {
+                width: 95vw; /* Make components match the phone screen width */
+                max-width: 400px; /* Prevent it from getting absurdly huge on small tablets */
+            }
+            #chat-input {
+                width: 65%; /* Tweak inputs to sit nicely on tiny screen widths */
+            }
+        }
     </style>
 </head>
 <body>
