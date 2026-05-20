@@ -66,7 +66,6 @@ function handleTurnTimeout() {
             try {
                 chess.move({ from: winningMoveStr.substring(0, 2), to: winningMoveStr.substring(2, 4), promotion: 'q' });
             } catch (e) {
-                // Fallback to random if the highest voted move somehow became illegal
                 const moves = chess.moves({ verbose: true });
                 if (moves.length > 0) chess.move(moves[Math.floor(Math.random() * moves.length)]);
             }
@@ -81,4 +80,117 @@ function handleTurnTimeout() {
 
     votes = {}; 
     userVotes = {};
-    io.emit('voteUpdate',
+    io.emit('voteUpdate', votes);
+    
+    const isOver = checkAndBroadcastStatus();
+    io.emit('gameState', chess.fen());
+    
+    if (!isOver && !chess.isGameOver()) {
+        startTimer();
+    }
+}
+
+io.on('connection', (socket) => {
+    socket.emit('gameState', chess.fen());
+    socket.emit('voteUpdate', votes);
+    socket.emit('roleStatus', { theOneTaken: theOneSocketId !== null });
+
+    socket.on('claimRole', (role) => {
+        if (role === 'theOne') {
+            if (theOneSocketId === null) {
+                theOneSocketId = socket.id;
+                socket.emit('roleAssigned', 'theOne');
+                io.emit('roleStatus', { theOneTaken: true });
+            } else socket.emit('roleDenied', 'The One position is already taken!');
+        } else {
+            socket.emit('roleAssigned', 'the100');
+        }
+
+        if (!gameStarted && theOneSocketId !== null) { 
+            gameStarted = true; 
+            startTimer(); 
+        }
+    });
+
+    socket.on('sendChatMessage', (text) => {
+        let senderRole = (socket.id === theOneSocketId) ? 'The One' : 'The 100';
+        io.emit('broadcastChatMessage', { role: senderRole, message: text });
+    });
+
+    socket.on('voteResign', () => {
+        if (socket.id === theOneSocketId) endGame("The One has resigned! Black wins.");
+        else {
+            resignVotes.add(socket.id);
+            const threshold = Math.ceil(io.engine.clientsCount * 0.51);
+            io.emit('resignProgress', { count: resignVotes.size, needed: threshold });
+            if (resignVotes.size >= threshold) endGame("The 100 have voted to resign! White wins.");
+        }
+    });
+
+    socket.on('restartGame', () => {
+        chess.reset(); 
+        votes = {}; 
+        userVotes = {}; 
+        resignVotes.clear();
+        gameStarted = true;
+        io.emit('gameState', chess.fen());
+        io.emit('voteUpdate', votes);
+        io.emit('broadcastChatMessage', { role: 'Game System', message: "Game restarted! Good luck." });
+        startTimer();
+    });
+
+    socket.on('submitMove', (moveData) => {
+        if (chess.turn() === 'w') {
+            if (socket.id !== theOneSocketId) return socket.emit('invalidRoleAction', "Not your turn!");
+            
+            try {
+                const move = chess.move({ from: moveData.from, to: moveData.to, promotion: 'q' });
+                if (move) {
+                    votes = {}; 
+                    userVotes = {};
+                    io.emit('gameState', chess.fen());
+                    io.emit('voteUpdate', votes);
+                    
+                    const isOver = checkAndBroadcastStatus();
+                    if (!isOver && !chess.isGameOver()) startTimer();
+                } else {
+                    socket.emit('invalidMove');
+                }
+            } catch (error) {
+                console.log(`Illegal move blocked from The One: ${moveData.from} -> ${moveData.to}`);
+                socket.emit('invalidMove');
+            }
+        } else {
+            if (socket.id === theOneSocketId) return socket.emit('invalidRoleAction', "You cannot vote!");
+            
+            try {
+                const tempChess = new Chess(chess.fen());
+                if (tempChess.move({ from: moveData.from, to: moveData.to, promotion: 'q' })) {
+                    const moveStr = moveData.from + moveData.to;
+                    if (userVotes[socket.id]) {
+                        const oldMove = userVotes[socket.id].move;
+                        if (votes[oldMove] > 0) votes[oldMove]--;
+                    }
+                    userVotes[socket.id] = { move: moveStr };
+                    votes[moveStr] = (votes[moveStr] || 0) + 1;
+                    io.emit('voteUpdate', votes);
+                } else {
+                    socket.emit('invalidMove');
+                }
+            } catch (error) {
+                socket.emit('invalidMove');
+            }
+        }
+    });
+
+    socket.on('disconnect', () => {
+        if (socket.id === theOneSocketId) {
+            theOneSocketId = null;
+            io.emit('roleStatus', { theOneTaken: false });
+        }
+        delete userVotes[socket.id];
+        resignVotes.delete(socket.id);
+    });
+});
+
+http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
