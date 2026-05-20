@@ -9,7 +9,7 @@ const chess = new Chess();
 
 let votes = {};
 let userVotes = {};
-let resignVotes = new Set(); // Tracks unique voters for resignation
+let resignVotes = new Set();
 let theOneSocketId = null;
 let gameStarted = false;
 
@@ -18,10 +18,6 @@ let timeRemaining = TURN_TIME_LIMIT;
 let timerInterval = null;
 
 app.use(express.static(__dirname));
-
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
-});
 
 function getGameStatus() {
     if (chess.isCheckmate()) return "CHECKMATE! " + (chess.turn() === 'w' ? "Black" : "White") + " wins!";
@@ -49,10 +45,8 @@ function startTimer() {
 }
 
 function handleTurnTimeout() {
-    if (io.engine.clientsCount === 0) {
-        gameStarted = false;
-        return;
-    }
+    if (io.engine.clientsCount === 0) { gameStarted = false; return; }
+    
     if (chess.turn() === 'b') {
         if (Object.keys(votes).length > 0) {
             const winningMoveStr = Object.keys(votes).reduce((a, b) => votes[a] > votes[b] ? a : b);
@@ -80,18 +74,7 @@ function handleTurnTimeout() {
 }
 
 io.on('connection', (socket) => {
-    socket.emit('gameState', (fen) => {
-	document.getElementById('restartBtn').style.display = 'none';
-	document.getElementById('resignStatus').innerText = '';
-
-	//Ensure board exists before updating
-	if (board) {
-	   board.position(fen);
-	}
-    });
-
-    socket.emit('voteUpdate', votes);
-    socket.emit('timeUpdate', timeRemaining);
+    socket.emit('gameState', chess.fen());
     socket.emit('roleStatus', { theOneTaken: theOneSocketId !== null });
 
     socket.on('claimRole', (role) => {
@@ -100,53 +83,39 @@ io.on('connection', (socket) => {
                 theOneSocketId = socket.id;
                 socket.emit('roleAssigned', 'theOne');
                 io.emit('roleStatus', { theOneTaken: true });
-            } else socket.emit('roleDenied', 'The One position is already taken!');
+            } else socket.emit('roleDenied', 'Taken!');
         } else socket.emit('roleAssigned', 'the100');
 
-        if (!gameStarted) {
-            gameStarted = true;
-            startTimer();
-        }
+        if (!gameStarted) { gameStarted = true; startTimer(); }
     });
 
     socket.on('voteResign', () => {
-        if (socket.id === theOneSocketId) {
-            endGame("The One has resigned! Black wins.");
-        } else {
+        if (socket.id === theOneSocketId) endGame("The One resigned! Black wins.");
+        else {
             resignVotes.add(socket.id);
             const threshold = Math.ceil(io.engine.clientsCount * 0.51);
             io.emit('resignProgress', { count: resignVotes.size, needed: threshold });
-            if (resignVotes.size >= threshold) {
-                endGame("The 100 have voted to resign! White wins.");
-            }
+            if (resignVotes.size >= threshold) endGame("The 100 resigned! White wins.");
         }
     });
 
     socket.on('restartGame', () => {
-        chess.reset();
-        votes = {}; userVotes = {}; resignVotes.clear();
+        chess.reset(); votes = {}; userVotes = {}; resignVotes.clear();
         gameStarted = true;
         io.emit('gameState', chess.fen());
-        io.emit('voteUpdate', votes);
-        io.emit('broadcastChatMessage', { role: 'Game System', message: "Game restarted!" });
         startTimer();
     });
 
     socket.on('submitMove', (moveData) => {
-        // ... (existing move logic here)
-        // Ensure you call getGameStatus() and check chess.isGameOver() here too!
-    });
-
-    socket.on('disconnect', () => {
-        if (socket.id === theOneSocketId) {
-            theOneSocketId = null;
-            io.emit('roleStatus', { theOneTaken: false });
+        if (chess.turn() === 'w' && socket.id === theOneSocketId) {
+            chess.move({ from: moveData.from, to: moveData.to, promotion: 'q' });
+            io.emit('gameState', chess.fen());
+        } else if (chess.turn() === 'b' && socket.id !== theOneSocketId) {
+            const moveStr = moveData.from + moveData.to;
+            votes[moveStr] = (votes[moveStr] || 0) + 1;
+            io.emit('voteUpdate', votes);
         }
-        delete userVotes[socket.id];
-        resignVotes.delete(socket.id);
     });
 });
 
-http.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+http.listen(PORT, () => console.log('Server running on port', PORT));
