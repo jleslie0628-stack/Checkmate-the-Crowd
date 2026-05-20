@@ -9,8 +9,9 @@ const chess = new Chess();
 
 // State management
 let votes = {};
-let userVotes = {}; // Tracks: { socketId: { move: "e7e5" } }
+let userVotes = {}; 
 let theOneSocketId = null; 
+let gameStarted = false; // Prevents game from running when empty
 
 // Timer configuration
 const TURN_TIME_LIMIT = 30; 
@@ -24,6 +25,8 @@ app.get('/', (req, res) => {
 });
 
 function startTimer() {
+    if (!gameStarted) return; // Wait for first player
+    
     clearInterval(timerInterval);
     timeRemaining = TURN_TIME_LIMIT;
     io.emit('timeUpdate', timeRemaining);
@@ -40,8 +43,13 @@ function startTimer() {
 }
 
 function handleTurnTimeout() {
+    // Stop the game if no one is connected
+    if (io.engine.clientsCount === 0) {
+        gameStarted = false;
+        return;
+    }
+
     if (chess.turn() === 'b') {
-        // Black's turn (The 100) -> Tally votes
         if (Object.keys(votes).length > 0) {
             const winningMoveStr = Object.keys(votes).reduce((a, b) => votes[a] > votes[b] ? a : b);
             const fromSquare = winningMoveStr.substring(0, 2);
@@ -59,7 +67,6 @@ function handleTurnTimeout() {
             }
         }
     } else {
-        // White's turn (The One) -> Force random move
         const moves = chess.moves({ verbose: true });
         if (moves.length > 0) {
             const randomMove = moves[Math.floor(Math.random() * moves.length)];
@@ -67,7 +74,6 @@ function handleTurnTimeout() {
         }
     }
 
-    // Reset game state for next turn
     votes = {};
     userVotes = {}; 
     io.emit('gameState', chess.fen());
@@ -93,6 +99,12 @@ io.on('connection', (socket) => {
         } else {
             socket.emit('roleAssigned', 'the100');
         }
+
+        // Trigger game start on first join
+        if (!gameStarted) {
+            gameStarted = true;
+            startTimer();
+        }
     });
 
     socket.on('sendChatMessage', (text) => {
@@ -104,7 +116,6 @@ io.on('connection', (socket) => {
         const moveStr = moveData.from + moveData.to;
 
         if (chess.turn() === 'w') {
-            // White's Logic
             if (socket.id !== theOneSocketId) {
                 socket.emit('invalidRoleAction', "It is White's turn, but you are not 'The One'!");
                 return;
@@ -124,7 +135,6 @@ io.on('connection', (socket) => {
                 socket.emit('invalidMove');
             }
         } else {
-            // Black's Logic
             if (socket.id === theOneSocketId) {
                 socket.emit('invalidRoleAction', "You are 'The One'. You cannot vote!");
                 return;
@@ -134,7 +144,6 @@ io.on('connection', (socket) => {
                 const isValid = tempChess.move({ from: moveData.from, to: moveData.to, promotion: 'q' });
 
                 if (isValid) {
-                    // Update user's specific vote
                     if (userVotes[socket.id]) {
                         const oldMove = userVotes[socket.id].move;
                         if (votes[oldMove] > 0) votes[oldMove]--;
@@ -160,8 +169,6 @@ io.on('connection', (socket) => {
         delete userVotes[socket.id];
     });
 });
-
-startTimer();
 
 http.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
