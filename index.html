@@ -54,6 +54,8 @@
                 <div id="chat-box"></div>
                 <input id="chat-input" placeholder="Message..." style="width:70%;">
                 <button id="chat-send" style="width:25%;">Send</button>
+                <div id="timerDisplay">Time: 30</div>
+                <div id="resignStatus"></div>
             </div>
         </div>
         <div id="controls" style="margin-top:20px;">
@@ -108,7 +110,21 @@
             chatBox.innerHTML += `<p><strong>${data.role}:</strong> ${data.message}</p>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         });
+        // Example: Safe Timer Update
+        socket.on('timeUpdate', (time) => {
+            const timerDisplay = document.getElementById('timerDisplay');
+            if (timerDisplay) { // Only run if the element exists!
+                timerDisplay.innerText = `Time: ${time}`;
+            }
+        });
 
+        // Example: Safe Resign Status Update
+        socket.on('resignProgress', (data) => {
+            const resignStatus = document.getElementById('resignStatus');
+            if (resignStatus) {
+            resignStatus.innerText = `Resign votes: ${data.count}/${data.needed}`;
+            }
+        });
         // Game State Logic
         socket.on('gameState', (fen) => { if(board) board.position(fen); });
         document.getElementById('resignBtn').onclick = () => socket.emit('voteResign');
