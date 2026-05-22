@@ -83,6 +83,19 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ADD THIS BACK: Handle crowd votes
+    socket.on('submitVote', (move) => {
+        if (socket.id === theOneSocketId) return; // The One cannot vote
+        
+        userVotes[socket.id] = move;
+        votes = {};
+        for (let user in userVotes) {
+            let move = userVotes[user];
+            votes[move] = (votes[move] || 0) + 1;
+        }
+        io.emit('voteUpdate', votes);
+    });
+
     socket.on('voteResign', () => {
         if (socket.id === theOneSocketId) endGame("The One resigned.");
         else {
