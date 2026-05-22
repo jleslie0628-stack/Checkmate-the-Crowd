@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Checkmate the Crowd</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
@@ -47,7 +47,7 @@
             border: none;
             border-radius: 5px;
             font-weight: bold;
-            width: 100%; /* Keeps buttons uniform under the logo */
+            width: 100%;
             max-width: 320px;
         }
         #joinOneBtn { background-color: #f1f2f6; color: #2f3542; }
@@ -65,8 +65,9 @@
             gap: 20px;
         }
         
+        /* MOBILE FIX: touch-action: none prevents board drag from scrolling */
         #board-wrapper { width: 400px; }
-        #board { width: 400px; }
+        #board { width: 400px; touch-action: none; }
         
         #chat-wrapper {
             width: 400px;
@@ -77,7 +78,7 @@
             text-align: left;
         }
         #chat-box {
-            height: 300px;
+            height: 250px;
             background: #111;
             border-radius: 3px;
             padding: 10px;
@@ -85,6 +86,8 @@
             margin-bottom: 10px;
             font-size: 14px;
         }
+        /* EMOJI BAR STYLING */
+        #emoji-bar { margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center; }
         #chat-input {
             width: 68%;
             padding: 8px;
@@ -129,7 +132,7 @@
         <h1>Checkmate the Crowd</h1>
         <div id="myRole">Role: Assigning...</div>
         <div id="status" style="font-size: 20px; font-weight: bold;">Waiting for server...</div>
-        <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30s</div>
+        <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30</div>
         
         <div class="game-layout">
             <div id="board-wrapper">
@@ -139,6 +142,12 @@
 
             <div id="chat-wrapper">
                 <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
+                <div id="emoji-bar">
+                    <span onclick="socket.emit('sendChatMessage', '👑')">👑</span>
+                    <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
+                    <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
+                    <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
+                </div>
                 <div id="chat-box"></div>
                 <div id="chat-controls">
                     <input type="text" id="chat-input" placeholder="Discuss tactics...">
@@ -162,6 +171,7 @@
         const socket = io();
         let turn = 'w';
         let myPlayerRole = null;
+        let turnEndTime = 0; // NEW: Timestamp for drift-free timer
 
         const board = Chessboard('board', {
             draggable: true,
@@ -169,6 +179,20 @@
             pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
             onDrop: onDrop
         });
+
+        // MOBILE FIX: Prevent page scroll while dragging
+        document.addEventListener('touchstart', (e) => { if(e.target.closest('#board')) e.preventDefault(); }, {passive: false});
+
+        // TIMER SYNC: Prevents drift
+        setInterval(() => {
+            if (turnEndTime > 0) {
+                let sec = Math.max(0, Math.floor((turnEndTime - Date.now()) / 1000));
+                document.getElementById('timer').innerText = sec + 's';
+            }
+        }, 500);
+
+        socket.on('timerSync', (time) => turnEndTime = time);
+        window.addEventListener('focus', () => socket.emit('requestSync'));
 
         document.getElementById('joinOneBtn').addEventListener('click', () => { socket.emit('claimRole', 'theOne'); });
         document.getElementById('join100Btn').addEventListener('click', () => { socket.emit('claimRole', 'the100'); });
@@ -249,8 +273,7 @@
         });
 
         socket.on('invalidMove', () => { alert('Illegal move! Try again.'); });
-        socket.on('timeUpdate', (secondsLeft) => { document.getElementById('timer').innerText = secondsLeft + 's'; });
-
+        
         socket.on('voteUpdate', (votes) => {
             const display = document.getElementById('voteDisplay');
             if (Object.keys(votes).length === 0) {
