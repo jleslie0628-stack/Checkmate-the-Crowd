@@ -9,6 +9,7 @@ const chess = new Chess();
 
 let votes = {}, userVotes = {}, resignVotes = new Set();
 let theOneSocketId = null, gameStarted = false, turnEndTime = null;
+let theOneTaken = false;
 
 app.use(express.static(__dirname));
 
@@ -81,6 +82,31 @@ io.on('connection', (socket) => {
         else {
             resignVotes.add(socket.id);
             if (resignVotes.size >= Math.ceil(io.engine.clientsCount * 0.51)) endGame("Crowd resigned.");
+        }
+
+    socket.on('claimRole', (role) => {
+        if (role === 'theOne') {
+            if (theOneTaken) {
+                // Reject the attempt if it's already taken
+                socket.emit('roleDenied', 'The One is already playing on another device.');
+                return;
+            }
+            theOneTaken = true;
+            theOneSocketId = socket.id;
+        }
+        
+    socket.emit('roleAssigned', role);
+        io.emit('roleStatus', { theOneTaken }); // Notify everyone to update buttons
+        
+        if (!gameStarted) { gameStarted = true; startTimer(); }
+    });
+
+    // CRITICAL: Release the role if the player disconnects
+    socket.on('disconnect', () => {
+        if (socket.id === theOneSocketId) {
+            theOneTaken = false;
+            theOneSocketId = null;
+            io.emit('roleStatus', { theOneTaken });
         }
     });
 });
