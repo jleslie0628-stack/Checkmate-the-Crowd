@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Checkmate the Crowd</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
@@ -16,6 +16,9 @@
             color: white;
             margin: 0;
             padding: 10px;
+            /* ADDED: prevents scroll bouncing on mobile */
+            overflow-x: hidden;
+            overscroll-behavior-y: none;
         }
         #lobby {
             display: flex;
@@ -66,7 +69,11 @@
         }
         
         #board-wrapper { width: 400px; }
-        #board { width: 400px; }
+        #board { 
+            width: 400px; 
+            /* ADDED: prevents touch-gestures on the board */
+            touch-action: none; 
+        }
         
         #chat-wrapper {
             width: 400px;
@@ -169,6 +176,10 @@
             pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
             onDrop: onDrop
         });
+
+        document.addEventListener('touchstart', (e) => { 
+            if(e.target.closest('#board')) e.preventDefault(); 
+        }, {passive: false});
 
         document.getElementById('joinOneBtn').addEventListener('click', () => { socket.emit('claimRole', 'theOne'); });
         document.getElementById('join100Btn').addEventListener('click', () => { socket.emit('claimRole', 'the100'); });
