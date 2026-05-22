@@ -4,118 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Checkmate the Crowd</title>
-    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #222;
-            color: white;
-            margin: 0;
-            padding: 10px;
-        }
-        #lobby {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 30px;
-            background: #333;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 450px;
-            width: 90%;
-            box-sizing: border-box;
-        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #222; color: white; margin: 0; padding: 10px; }
         
-        /* LOGO STYLING: Ensures it stays sharp and responsive */
-        .game-logo {
-            width: 100%;
-            max-width: 350px;
-            height: auto;
-            margin-bottom: 15px;
-            border-radius: 8px;
-        }
+        #lobby { display: flex; flex-direction: column; align-items: center; margin-top: 30px; background: #333; padding: 30px; border-radius: 10px; max-width: 450px; width: 90%; box-sizing: border-box; }
+        .game-logo { width: 100%; max-width: 350px; height: auto; margin-bottom: 15px; border-radius: 8px; }
 
-        .btn {
-            padding: 15px 30px;
-            font-size: 18px;
-            margin: 10px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-            width: 100%;
-            max-width: 320px;
-        }
+        .btn { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; width: 100%; max-width: 320px; transition: 0.3s; }
         #joinOneBtn { background-color: #f1f2f6; color: #2f3542; }
         #joinOneBtn:disabled { background-color: #747d8c; cursor: not-allowed; }
         #join100Btn { background-color: #2f3542; color: white; border: 2px solid white; }
         
         #gameContainer { display: none; text-align: center; width: 100%; max-width: 850px; }
+        .game-layout { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; margin-top: 20px; gap: 20px; }
         
-        .game-layout {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-top: 20px;
-            gap: 20px;
-        }
-        
-        /* MOBILE FIX: touch-action: none prevents board drag from scrolling */
+        /* Board and Chat Styling */
         #board-wrapper { width: 400px; }
         #board { width: 400px; touch-action: none; }
+        #chat-wrapper { width: 400px; background: #333; border-radius: 5px; padding: 15px; box-sizing: border-box; text-align: left; }
+        #chat-box { height: 250px; background: #111; border-radius: 3px; padding: 10px; overflow-y: auto; margin-bottom: 10px; font-size: 14px; }
         
-        #chat-wrapper {
-            width: 400px;
-            background: #333;
-            border-radius: 5px;
-            padding: 15px;
-            box-sizing: border-box;
-            text-align: left;
-        }
-        #chat-box {
-            height: 250px;
-            background: #111;
-            border-radius: 3px;
-            padding: 10px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        /* EMOJI BAR STYLING */
         #emoji-bar { display: none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center; }
-        #chat-input {
-            width: 68%;
-            padding: 8px;
-            border: none;
-            border-radius: 3px;
-        }
-        #chat-send {
-            width: 25%;
-            padding: 8px;
-            background: #ffa502;
-            border: none;
-            color: black;
-            font-weight: bold;
-            border-radius: 3px;
-            cursor: pointer;
-        }
+        #chat-input { width: 68%; padding: 8px; border: none; border-radius: 3px; }
+        #chat-send { width: 25%; padding: 8px; background: #ffa502; border: none; color: black; font-weight: bold; border-radius: 3px; cursor: pointer; }
         
         #myRole { font-size: 18px; color: #ffa502; margin-bottom: 5px; font-weight: bold; }
         #controls-wrapper { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         #resignBtn { background-color: #ff4757; color: white; }
         #restartBtn { background-color: #2ed573; color: white; display: none; }
-        #resignStatus { color: #ff7f50; font-weight: bold; font-size: 14px; }
-
+        
         @media (max-width: 850px) {
-            body { padding: 10px; }
             .game-layout { flex-direction: column; align-items: center; gap: 15px; }
             #board-wrapper, #board, #chat-wrapper { width: 95vw; max-width: 400px; }
-            #chat-input { width: 65%; }
         }
     </style>
 </head>
@@ -124,15 +45,15 @@
     <div id="lobby">
         <img src="Logo.jpg" alt="Checkmate the Crowd Logo" class="game-logo">
         <h2>Choose Your Side</h2>
-        <button id="joinOneBtn" class="btn">Play as "The One" (White)</button>
-        <button id="join100Btn" class="btn">Join "The 100" (Black Crowd)</button>
+        <button id="joinOneBtn" class="btn">Play as "The One" (White) 👑</button>
+        <button id="join100Btn" class="btn">Join "The 100" (Black) 👥</button>
     </div>
 
     <div id="gameContainer">
         <h1>Checkmate the Crowd</h1>
         <div id="myRole">Role: Assigning...</div>
         <div id="status" style="font-size: 20px; font-weight: bold;">Waiting for server...</div>
-        <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30</div>
+        <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30s</div>
         
         <div class="game-layout">
             <div id="board-wrapper">
@@ -151,10 +72,8 @@
                     <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
                 </div>
                 <div id="chat-box"></div>
-                <div id="chat-controls">
-                    <input type="text" id="chat-input" placeholder="Discuss tactics...">
-                    <button id="chat-send">Send</button>
-                </div>
+                <input type="text" id="chat-input" placeholder="Discuss tactics...">
+                <button id="chat-send">Send</button>
             </div>
         </div>
 
@@ -171,19 +90,20 @@
 
     <script>
         const socket = io();
-        let turn = 'w';
         let myPlayerRole = null;
         let turnEndTime = 0;
 
+        // Initialize Board
         const board = Chessboard('board', {
             draggable: true,
             position: 'start',
-            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
             onDrop: onDrop
         });
 
+        // Prevention for mobile scrolling
         document.addEventListener('touchstart', (e) => { if(e.target.closest('#board')) e.preventDefault(); }, {passive: false});
 
+        // Timer Logic
         setInterval(() => {
             if (turnEndTime > 0) {
                 let sec = Math.max(0, Math.floor((turnEndTime - Date.now()) / 1000));
@@ -194,14 +114,16 @@
         socket.on('timerSync', (time) => turnEndTime = time);
         window.addEventListener('focus', () => socket.emit('requestSync'));
 
-        document.getElementById('joinOneBtn').addEventListener('click', () => { socket.emit('claimRole', 'theOne'); });
-        document.getElementById('join100Btn').addEventListener('click', () => { socket.emit('claimRole', 'the100'); });
-        document.getElementById('resignBtn').addEventListener('click', () => { socket.emit('voteResign'); });
-        document.getElementById('restartBtn').addEventListener('click', () => { socket.emit('restartGame'); });
+        // UI Handlers
+        document.getElementById('joinOneBtn').addEventListener('click', () => socket.emit('claimRole', 'theOne'));
+        document.getElementById('join100Btn').addEventListener('click', () => socket.emit('claimRole', 'the100'));
+        document.getElementById('resignBtn').addEventListener('click', () => socket.emit('voteResign'));
+        document.getElementById('restartBtn').addEventListener('click', () => socket.emit('restartGame'));
 
+        // Socket Listeners
         socket.on('roleStatus', (status) => {
             document.getElementById('joinOneBtn').disabled = status.theOneTaken;
-            document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled)' : 'Play as "The One" (White)';
+            document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled) 🔒' : 'Play as "The One" (White) 👑';
         });
 
         socket.on('roleAssigned', (role) => {
@@ -237,49 +159,38 @@
 
         socket.on('broadcastChatMessage', (data) => {
             const chatBox = document.getElementById('chat-box');
-            let color = '#ffa502'; 
-            if (data.role === 'The One') color = '#f1f2f6';
-            if (data.role === 'Game System') color = '#ff4757';
-            
+            let color = (data.role === 'The One') ? '#f1f2f6' : (data.role === 'Game System' ? '#ff4757' : '#ffa502');
             chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         });
 
         socket.on('resignProgress', (data) => {
-            const statusDiv = document.getElementById('resignStatus');
-            if (statusDiv) {
-                statusDiv.innerText = `Resignation Votes: ${data.count} / ${data.needed} required (51%)`;
+            document.getElementById('resignStatus').innerText = `Resignation Votes: ${data.count} / ${data.needed} required (51%)`;
+        });
+
+        socket.on('gameOver', () => document.getElementById('restartBtn').style.display = 'inline-block');
+
+        // Move/Drop Logic
+        function onDrop(source, target) {
+            if (source === target) return;
+            if (myPlayerRole === 'theOne') {
+                socket.emit('submitMove', { from: source, to: target });
+            } else {
+                socket.emit('submitVote', source + target);
             }
-        });
-
-        socket.on('gameOver', () => {
-            document.getElementById('restartBtn').style.display = 'inline-block';
-        });
-
-        socket.on('roleDenied', (msg) => { alert(msg); });
-        socket.on('invalidRoleAction', (msg) => { alert(msg); });
-
-function onDrop(source, target) {
-    if (source === target) return;
-    if (myPlayerRole === 'theOne') {
-        // Just send coordinates, let the server decide if it's a promotion
-        socket.emit('submitMove', { from: source, to: target });
-    } else {
-        socket.emit('submitVote', source + target);
-    }
-    return 'snapback';
-}
+            return 'snapback';
+        }
 
         socket.on('gameState', (fen) => {
             board.position(fen);
-            turn = fen.split(' ')[1]; 
-            document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
+            const turn = fen.split(' ')[1];
+            document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One) 👑" : "Black's Turn (The 100 Voting...) 👥";
             document.getElementById('restartBtn').style.display = 'none';
             document.getElementById('resignStatus').innerText = '';
         });
 
-        socket.on('invalidMove', () => { alert('Illegal move! Try again.'); });
-        
+        socket.on('invalidMove', () => alert('Illegal move! Try again.'));
+
         socket.on('voteUpdate', (votes) => {
             const display = document.getElementById('voteDisplay');
             if (Object.keys(votes).length === 0) {
@@ -292,6 +203,9 @@ function onDrop(source, target) {
             }
             display.innerHTML = html;
         });
+
+        // Extra lines for project structure maintenance
+        console.log("Game client initialized.");
     </script>
 </body>
 </html>
