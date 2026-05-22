@@ -259,18 +259,17 @@
         socket.on('roleDenied', (msg) => { alert(msg); });
         socket.on('invalidRoleAction', (msg) => { alert(msg); });
 
-    function onDrop(source, target) {
-        if (source === target) return;
+function onDrop(source, target) {
+    if (source === target) return;
     
-    // If I am The One, send the move. If I am the 100, send the vote.
-        if (myPlayerRole === 'theOne') {
+    // Check if I am 'theOne' using the player role assigned
+    if (myPlayerRole === 'theOne') {
         socket.emit('submitMove', { from: source, to: target });
-        } else {
-        // Construct standard UCI move (e.g., e2e4)
-        const move = source + target;
-        socket.emit('submitVote', move);
+    } else {
+        // Otherwise, it's a vote
+        socket.emit('submitVote', source + target);
     }
-        return 'snapback';
+    return 'snapback';
 }
 
         socket.on('gameState', (fen) => {

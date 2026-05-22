@@ -29,15 +29,24 @@ function startTimer() {
 function handleTurnTimeout() {
     if (chess.isGameOver()) return;
     const moves = chess.moves({ verbose: true });
-    if (moves.length > 0) {
-        chess.move(moves[Math.floor(Math.random() * moves.length)]);
+    let move;
+
+    if (Object.keys(votes).length > 0) {
+        let topMove = Object.keys(votes).reduce((a, b) => votes[a] > votes[b] ? a : b);
+        move = moves.find(m => (m.from + m.to) === topMove);
     }
-    if (chess.isGameOver()) {
-        endGame("Game Over - Checkmate!");
-    } else {
-        votes = {}; userVotes = {};
-        io.emit('gameState', chess.fen());
-        startTimer();
+    if (!move) move = moves[Math.floor(Math.random() * moves.length)];
+    
+    if (move) {
+        chess.move(move);
+        if (chess.isGameOver()) {
+            endGame("Game Over - Checkmate!");
+        } else {
+            votes = {}; userVotes = {};
+            io.emit('gameState', chess.fen());
+            io.emit('voteUpdate', votes);
+            startTimer();
+        }
     }
 }
 
@@ -77,21 +86,20 @@ io.on('connection', (socket) => {
     });
 
     socket.on('submitMove', (data) => {
-        if (chess.move({ from: data.from, to: data.to, promotion: 'q' })) {
+        if (socket.id === theOneSocketId && chess.move({ from: data.from, to: data.to, promotion: 'q' })) {
             io.emit('gameState', chess.fen());
-            startTimer();
+            if (chess.isGameOver()) endGame("Game Over - Checkmate!");
+            else startTimer();
         }
     });
 
-    // ADD THIS BACK: Handle crowd votes
     socket.on('submitVote', (move) => {
-        if (socket.id === theOneSocketId) return; // The One cannot vote
-        
+        if (socket.id === theOneSocketId) return; 
         userVotes[socket.id] = move;
         votes = {};
         for (let user in userVotes) {
-            let move = userVotes[user];
-            votes[move] = (votes[move] || 0) + 1;
+            let m = userVotes[user];
+            votes[m] = (votes[m] || 0) + 1;
         }
         io.emit('voteUpdate', votes);
     });
