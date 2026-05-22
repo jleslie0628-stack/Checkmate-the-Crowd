@@ -87,7 +87,7 @@
             font-size: 14px;
         }
         /* EMOJI BAR STYLING */
-        #emoji-bar { margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center; }
+        #emoji-bar { display: none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center; }
         #chat-input {
             width: 68%;
             padding: 8px;
@@ -147,6 +147,8 @@
                     <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
                     <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
                     <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
+                    <span onclick="socket.emit('sendChatMessage', '😂')">😂</span>
+                    <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
                 </div>
                 <div id="chat-box"></div>
                 <div id="chat-controls">
@@ -171,7 +173,7 @@
         const socket = io();
         let turn = 'w';
         let myPlayerRole = null;
-        let turnEndTime = 0; // NEW: Timestamp for drift-free timer
+        let turnEndTime = 0;
 
         const board = Chessboard('board', {
             draggable: true,
@@ -180,10 +182,8 @@
             onDrop: onDrop
         });
 
-        // MOBILE FIX: Prevent page scroll while dragging
         document.addEventListener('touchstart', (e) => { if(e.target.closest('#board')) e.preventDefault(); }, {passive: false});
 
-        // TIMER SYNC: Prevents drift
         setInterval(() => {
             if (turnEndTime > 0) {
                 let sec = Math.max(0, Math.floor((turnEndTime - Date.now()) / 1000));
@@ -210,6 +210,7 @@
             document.getElementById('gameContainer').style.display = 'block';
             
             if (role === 'theOne') {
+                document.getElementById('emoji-bar').style.display = 'block';
                 document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
                 document.getElementById('chat-input').disabled = true;
                 document.getElementById('chat-input').placeholder = "You are eavesdropping...";

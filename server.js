@@ -16,11 +16,36 @@ function startTimer() {
     if (!gameStarted) return;
     turnEndTime = Date.now() + 30000;
     io.emit('timerSync', turnEndTime);
+    
+    // Safety net: Force move if timer expires
+    setTimeout(() => {
+        if (gameStarted && Date.now() >= turnEndTime) {
+            handleTurnTimeout();
+        }
+    }, 30000);
+}
+
+function handleTurnTimeout() {
+    if (chess.isGameOver()) return;
+    
+    // Logic: If crowd turn, pick most voted move; otherwise random
+    const moves = chess.moves({ verbose: true });
+    if (moves.length > 0) {
+        chess.move(moves[Math.floor(Math.random() * moves.length)]);
+    }
+
+    if (chess.isGameOver()) {
+        endGame("Game Over - Checkmate!");
+    } else {
+        votes = {}; userVotes = {};
+        io.emit('gameState', chess.fen());
+        startTimer();
+    }
 }
 
 function endGame(message) {
     gameStarted = false;
-    io.emit('broadcastChatMessage', { role: 'System', message: message });
+    io.emit('broadcastChatMessage', { role: 'Game System', message: message });
     io.emit('gameOver');
 }
 
@@ -45,12 +70,10 @@ io.on('connection', (socket) => {
     });
 
     socket.on('submitMove', (data) => {
-        try {
-            if (chess.move({ from: data.from, to: data.to, promotion: 'q' })) {
-                io.emit('gameState', chess.fen());
-                startTimer();
-            }
-        } catch(e) { socket.emit('invalidMove'); }
+        if (chess.move({ from: data.from, to: data.to, promotion: 'q' })) {
+            io.emit('gameState', chess.fen());
+            startTimer();
+        }
     });
 
     socket.on('voteResign', () => {
@@ -60,8 +83,6 @@ io.on('connection', (socket) => {
             if (resignVotes.size >= Math.ceil(io.engine.clientsCount * 0.51)) endGame("Crowd resigned.");
         }
     });
-
-    socket.on('disconnect', () => { if (socket.id === theOneSocketId) theOneSocketId = null; });
 });
 
 http.listen(PORT, () => console.log(`Server running on ${PORT}`));
