@@ -28,13 +28,10 @@ function startTimer() {
 
 function handleTurnTimeout() {
     if (chess.isGameOver()) return;
-    
-    // Logic: If crowd turn, pick most voted move; otherwise random
     const moves = chess.moves({ verbose: true });
     if (moves.length > 0) {
         chess.move(moves[Math.floor(Math.random() * moves.length)]);
     }
-
     if (chess.isGameOver()) {
         endGame("Game Over - Checkmate!");
     } else {
@@ -53,6 +50,7 @@ function endGame(message) {
 io.on('connection', (socket) => {
     socket.emit('gameState', chess.fen());
     socket.emit('timerSync', turnEndTime);
+    socket.emit('roleStatus', { theOneTaken });
 
     socket.on('requestSync', () => {
         socket.emit('gameState', chess.fen());
@@ -60,8 +58,16 @@ io.on('connection', (socket) => {
     });
 
     socket.on('claimRole', (role) => {
-        if (role === 'theOne' && !theOneSocketId) theOneSocketId = socket.id;
+        if (role === 'theOne') {
+            if (theOneTaken) {
+                socket.emit('roleDenied', 'The One is already playing on another device.');
+                return;
+            }
+            theOneTaken = true;
+            theOneSocketId = socket.id;
+        }
         socket.emit('roleAssigned', role);
+        io.emit('roleStatus', { theOneTaken });
         if (!gameStarted) { gameStarted = true; startTimer(); }
     });
 
@@ -83,25 +89,8 @@ io.on('connection', (socket) => {
             resignVotes.add(socket.id);
             if (resignVotes.size >= Math.ceil(io.engine.clientsCount * 0.51)) endGame("Crowd resigned.");
         }
-
-    socket.on('claimRole', (role) => {
-        if (role === 'theOne') {
-            if (theOneTaken) {
-                // Reject the attempt if it's already taken
-                socket.emit('roleDenied', 'The One is already playing on another device.');
-                return;
-            }
-            theOneTaken = true;
-            theOneSocketId = socket.id;
-        }
-        
-    socket.emit('roleAssigned', role);
-        io.emit('roleStatus', { theOneTaken }); // Notify everyone to update buttons
-        
-        if (!gameStarted) { gameStarted = true; startTimer(); }
     });
 
-    // CRITICAL: Release the role if the player disconnects
     socket.on('disconnect', () => {
         if (socket.id === theOneSocketId) {
             theOneTaken = false;
