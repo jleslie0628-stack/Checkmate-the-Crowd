@@ -85,13 +85,50 @@ io.on('connection', (socket) => {
         io.emit('broadcastChatMessage', { role, message: msg });
     });
 
+    // Replace your existing submitMove and handleTurnTimeout with these:
+
     socket.on('submitMove', (data) => {
-        if (socket.id === theOneSocketId && chess.move({ from: data.from, to: data.to, promotion: 'q' })) {
+        if (socket.id === theOneSocketId) {
+        // Attempt the move
+        const move = chess.move({ from: data.from, to: data.to, promotion: 'q' });
+        if (move) {
             io.emit('gameState', chess.fen());
-            if (chess.isGameOver()) endGame("Game Over - Checkmate!");
-            else startTimer();
+            
+            // Check for game over IMMEDIATELY after the move
+            if (chess.isGameOver()) {
+                endGame("Game Over - Checkmate!");
+            } else {
+                startTimer();
+            }
         }
-    });
+    }
+});
+
+function handleTurnTimeout() {
+    if (chess.isGameOver()) return;
+    const moves = chess.moves({ verbose: true });
+    let move;
+
+    if (Object.keys(votes).length > 0) {
+        let topMove = Object.keys(votes).reduce((a, b) => votes[a] > votes[b] ? a : b);
+        move = moves.find(m => (m.from + m.to) === topMove);
+    }
+    if (!move) move = moves[Math.floor(Math.random() * moves.length)];
+    
+    if (move) {
+        chess.move(move);
+        io.emit('gameState', chess.fen());
+        
+        // Check for game over IMMEDIATELY after the auto-move
+        if (chess.isGameOver()) {
+            endGame("Game Over - Checkmate!");
+        } else {
+            votes = {}; userVotes = {};
+            io.emit('voteUpdate', votes);
+            startTimer();
+        }
+    }
+}
 
     socket.on('submitVote', (move) => {
         if (socket.id === theOneSocketId) return; 
