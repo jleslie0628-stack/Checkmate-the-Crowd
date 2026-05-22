@@ -94,19 +94,29 @@ io.on('connection', (socket) => {
             const piece = chess.get(data.from);
             let moveAttempt = { from: data.from, to: data.to };
             
-            // Only promote if it's a pawn reaching the end
             if (piece && piece.type === 'p' && (data.to[1] === '1' || data.to[1] === '8')) {
                 moveAttempt.promotion = 'q';
             }
 
-            const move = chess.move(moveAttempt);
-            if (move) {
-                io.emit('gameState', chess.fen());
-                if (chess.isGameOver()) {
-                    endGame("Game Over - Checkmate!");
+            try {
+                // Use a try-catch to prevent crashing on illegal moves
+                const move = chess.move(moveAttempt);
+                
+                if (move) {
+                    io.emit('gameState', chess.fen());
+                    if (chess.isGameOver()) {
+                        endGame("Game Over - Checkmate!");
+                    } else {
+                        startTimer();
+                    }
                 } else {
-                    startTimer();
+                    // Move was syntactically correct but illegal (e.g., King in check)
+                    socket.emit('invalidMove'); 
                 }
+            } catch (err) {
+                // Caught invalid move (chess.js throws error instead of returning null)
+                console.log("Illegal move attempted:", err.message);
+                socket.emit('invalidMove');
             }
         }
     });
