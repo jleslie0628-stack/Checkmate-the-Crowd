@@ -261,12 +261,10 @@
 
 function onDrop(source, target) {
     if (source === target) return;
-    
-    // Check if I am 'theOne' using the player role assigned
     if (myPlayerRole === 'theOne') {
+        // Just send coordinates, let the server decide if it's a promotion
         socket.emit('submitMove', { from: source, to: target });
     } else {
-        // Otherwise, it's a vote
         socket.emit('submitVote', source + target);
     }
     return 'snapback';

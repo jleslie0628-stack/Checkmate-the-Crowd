@@ -39,11 +39,13 @@ function handleTurnTimeout() {
     
     if (move) {
         chess.move(move);
+        io.emit('gameState', chess.fen());
+        
         if (chess.isGameOver()) {
             endGame("Game Over - Checkmate!");
         } else {
-            votes = {}; userVotes = {};
-            io.emit('gameState', chess.fen());
+            votes = {}; 
+            userVotes = {};
             io.emit('voteUpdate', votes);
             startTimer();
         }
@@ -52,6 +54,7 @@ function handleTurnTimeout() {
 
 function endGame(message) {
     gameStarted = false;
+    turnEndTime = null;
     io.emit('broadcastChatMessage', { role: 'Game System', message: message });
     io.emit('gameOver');
 }
@@ -85,51 +88,30 @@ io.on('connection', (socket) => {
         io.emit('broadcastChatMessage', { role, message: msg });
     });
 
-    // Replace your existing submitMove and handleTurnTimeout with these:
-
+    // Validated Move Handling for "The One"
     socket.on('submitMove', (data) => {
         if (socket.id === theOneSocketId) {
-        // Attempt the move
-        const move = chess.move({ from: data.from, to: data.to, promotion: 'q' });
-        if (move) {
-            io.emit('gameState', chess.fen());
+            const piece = chess.get(data.from);
+            let moveAttempt = { from: data.from, to: data.to };
             
-            // Check for game over IMMEDIATELY after the move
-            if (chess.isGameOver()) {
-                endGame("Game Over - Checkmate!");
-            } else {
-                startTimer();
+            // Only promote if it's a pawn reaching the end
+            if (piece && piece.type === 'p' && (data.to[1] === '1' || data.to[1] === '8')) {
+                moveAttempt.promotion = 'q';
+            }
+
+            const move = chess.move(moveAttempt);
+            if (move) {
+                io.emit('gameState', chess.fen());
+                if (chess.isGameOver()) {
+                    endGame("Game Over - Checkmate!");
+                } else {
+                    startTimer();
+                }
             }
         }
-    }
-});
+    });
 
-function handleTurnTimeout() {
-    if (chess.isGameOver()) return;
-    const moves = chess.moves({ verbose: true });
-    let move;
-
-    if (Object.keys(votes).length > 0) {
-        let topMove = Object.keys(votes).reduce((a, b) => votes[a] > votes[b] ? a : b);
-        move = moves.find(m => (m.from + m.to) === topMove);
-    }
-    if (!move) move = moves[Math.floor(Math.random() * moves.length)];
-    
-    if (move) {
-        chess.move(move);
-        io.emit('gameState', chess.fen());
-        
-        // Check for game over IMMEDIATELY after the auto-move
-        if (chess.isGameOver()) {
-            endGame("Game Over - Checkmate!");
-        } else {
-            votes = {}; userVotes = {};
-            io.emit('voteUpdate', votes);
-            startTimer();
-        }
-    }
-}
-
+    // Crowd Voting Logic
     socket.on('submitVote', (move) => {
         if (socket.id === theOneSocketId) return; 
         userVotes[socket.id] = move;
@@ -142,10 +124,13 @@ function handleTurnTimeout() {
     });
 
     socket.on('voteResign', () => {
-        if (socket.id === theOneSocketId) endGame("The One resigned.");
-        else {
+        if (socket.id === theOneSocketId) {
+            endGame("The One resigned.");
+        } else {
             resignVotes.add(socket.id);
-            if (resignVotes.size >= Math.ceil(io.engine.clientsCount * 0.51)) endGame("Crowd resigned.");
+            if (resignVotes.size >= Math.ceil(io.engine.clientsCount * 0.51)) {
+                endGame("Crowd resigned.");
+            }
         }
     });
 
