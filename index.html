@@ -16,7 +16,6 @@
             color: white;
             margin: 0;
             padding: 10px;
-            /* ADDED: prevents scroll bouncing on mobile */
             overflow-x: hidden;
             overscroll-behavior-y: none;
         }
@@ -32,8 +31,6 @@
             width: 90%;
             box-sizing: border-box;
         }
-        
-        /* LOGO STYLING: Ensures it stays sharp and responsive */
         .game-logo {
             width: 100%;
             max-width: 350px;
@@ -41,7 +38,6 @@
             margin-bottom: 15px;
             border-radius: 8px;
         }
-
         .btn {
             padding: 15px 30px;
             font-size: 18px;
@@ -50,31 +46,23 @@
             border: none;
             border-radius: 5px;
             font-weight: bold;
-            width: 100%; /* Keeps buttons uniform under the logo */
+            width: 100%;
             max-width: 320px;
         }
         #joinOneBtn { background-color: #f1f2f6; color: #2f3542; }
         #joinOneBtn:disabled { background-color: #747d8c; cursor: not-allowed; }
         #join100Btn { background-color: #2f3542; color: white; border: 2px solid white; }
-        
         #gameContainer { display: none; text-align: center; width: 100%; max-width: 850px; }
-        
         .game-layout {
             display: flex;
             flex-direction: row;
-            justify-content: space-between;
+            justify-content: center;
             align-items: flex-start;
             margin-top: 20px;
             gap: 20px;
         }
-        
         #board-wrapper { width: 400px; }
-        #board { 
-            width: 400px; 
-            /* ADDED: prevents touch-gestures on the board */
-            touch-action: none; 
-        }
-        
+        #board { width: 400px; touch-action: none; }
         #chat-wrapper {
             width: 400px;
             background: #333;
@@ -92,29 +80,20 @@
             margin-bottom: 10px;
             font-size: 14px;
         }
-        #chat-input {
-            width: 68%;
-            padding: 8px;
-            border: none;
-            border-radius: 3px;
-        }
-        #chat-send {
-            width: 25%;
-            padding: 8px;
-            background: #ffa502;
-            border: none;
-            color: black;
-            font-weight: bold;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        
+        #chat-input { width: 68%; padding: 8px; border: none; border-radius: 3px; }
+        #chat-send { width: 25%; padding: 8px; background: #ffa502; border: none; color: black; font-weight: bold; border-radius: 3px; cursor: pointer; }
         #myRole { font-size: 18px; color: #ffa502; margin-bottom: 5px; font-weight: bold; }
-        #controls-wrapper { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        #controls-wrapper {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
         #resignBtn { background-color: #ff4757; color: white; }
         #restartBtn { background-color: #2ed573; color: white; display: none; }
         #resignStatus { color: #ff7f50; font-weight: bold; font-size: 14px; }
-
         @media (max-width: 850px) {
             body { padding: 10px; }
             .game-layout { flex-direction: column; align-items: center; gap: 15px; }
@@ -143,25 +122,24 @@
                 <div id="board"></div>
                 <div id="voteDisplay" style="margin-top: 15px; color: #aaa; font-family: monospace; font-size: 16px;"></div>
             </div>
-        <div id="chat-wrapper">
-    <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
-    
-    <!-- Emoji Bar moved inside here -->
-    <div id="emoji-bar" style="display:none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center;">
-        <span onclick="socket.emit('sendChatMessage', '👑')">👑</span>
-        <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
-        <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
-        <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
-        <span onclick="socket.emit('sendChatMessage', '😂')">😂</span>
-        <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
-    </div>
-
-    <div id="chat-box"></div>
-    <div id="chat-controls">
-        <input type="text" id="chat-input" placeholder="Discuss tactics...">
-        <button id="chat-send">Send</button>
-    </div>
-</div>
+            
+            <div id="chat-wrapper">
+                <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
+                <div id="emoji-bar" style="display:none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center;">
+                    <span onclick="socket.emit('sendChatMessage', '👑')">👑</span>
+                    <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
+                    <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
+                    <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
+                    <span onclick="socket.emit('sendChatMessage', '😂')">😂</span>
+                    <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
+                </div>
+                <div id="chat-box"></div>
+                <div id="chat-controls">
+                    <input type="text" id="chat-input" placeholder="Discuss tactics...">
+                    <button id="chat-send">Send</button>
+                </div>
+            </div>
+        </div>
 
         <div id="controls-wrapper">
             <button id="resignBtn" class="btn">Vote to Resign</button>
@@ -175,112 +153,108 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
-    const socket = io();
-    let turn = 'w';
-    let myPlayerRole = null;
-    let timerInterval = null;
+        const socket = io();
+        let turn = 'w';
+        let myPlayerRole = null;
+        let timerInterval = null;
 
-    // Initialize board
-    const board = Chessboard('board', {
-        draggable: true,
-        position: 'start',
-        pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-        onDrop: onDrop
-    });
+        const board = Chessboard('board', {
+            draggable: true,
+            position: 'start',
+            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+            onDrop: onDrop
+        });
 
-    // --- Functions ---
-    function onDrop(source, target) {
-        if (source === target) return;
-        socket.emit('submitMove', { from: source, to: target });
-        return 'snapback';
-    }
-
-    function sendMsg() {
-        const input = document.getElementById('chat-input');
-        const text = input.value.trim();
-        if (text.length > 0) {
-            socket.emit('sendChatMessage', text);
-            input.value = '';
+        function onDrop(source, target) {
+            if (source === target) return;
+            socket.emit('submitMove', { from: source, to: target });
+            return 'snapback';
         }
-    }
 
-    // --- Event Listeners ---
-    document.addEventListener('touchstart', (e) => { 
-        if(e.target.closest('#board')) e.preventDefault(); 
-    }, {passive: false});
-
-    document.getElementById('joinOneBtn').addEventListener('click', () => socket.emit('claimRole', 'theOne'));
-    document.getElementById('join100Btn').addEventListener('click', () => socket.emit('claimRole', 'the100'));
-    document.getElementById('resignBtn').addEventListener('click', () => socket.emit('voteResign'));
-    document.getElementById('restartBtn').addEventListener('click', () => socket.emit('restartGame'));
-    document.getElementById('chat-send').addEventListener('click', sendMsg);
-    document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
-
-    // --- Socket Listeners ---
-    socket.on('gameState', (fen) => {
-        board.position(fen);
-        turn = fen.split(' ')[1]; 
-        document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
-        document.getElementById('restartBtn').style.display = 'none';
-        document.getElementById('resignStatus').innerText = '';
-    });
-
-    socket.on('roleStatus', (status) => {
-        document.getElementById('joinOneBtn').disabled = status.theOneTaken;
-        document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled)' : 'Play as "The One" (White)';
-    });
-
-    socket.on('roleAssigned', (role) => {
-        myPlayerRole = role;
-        document.getElementById('lobby').style.display = 'none';
-        document.getElementById('gameContainer').style.display = 'block';
-        document.getElementById('emoji-bar').style.display = (role === 'theOne') ? 'block' : 'none';
-        
-        if (role === 'theOne') {
-            document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
-            document.getElementById('chat-input').disabled = true;
-            document.getElementById('chat-input').placeholder = "You are eavesdropping...";
-            document.getElementById('chat-send').disabled = true;
-            document.getElementById('chat-send').style.background = '#555';
-        } else {
-            document.getElementById('myRole').innerText = 'Your Role: THE 100 👥';
+        function sendMsg() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (text.length > 0) {
+                socket.emit('sendChatMessage', text);
+                input.value = '';
+            }
         }
-    });
 
-    socket.on('timerStarted', (endTime) => {
-        clearInterval(timerInterval);
-        const timerDisplay = document.getElementById('timer');
-        timerInterval = setInterval(() => {
-            const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-            timerDisplay.innerText = timeLeft + 's';
-            if (timeLeft <= 0) clearInterval(timerInterval);
-        }, 100);
-    });
+        document.addEventListener('touchstart', (e) => { 
+            if(e.target.closest('#board')) e.preventDefault(); 
+        }, {passive: false});
 
-    socket.on('broadcastChatMessage', (data) => {
-        const chatBox = document.getElementById('chat-box');
-        let color = (data.role === 'The One') ? '#f1f2f6' : (data.role === 'Game System' ? '#ff4757' : '#ffa502');
-        chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
+        document.getElementById('joinOneBtn').addEventListener('click', () => socket.emit('claimRole', 'theOne'));
+        document.getElementById('join100Btn').addEventListener('click', () => socket.emit('claimRole', 'the100'));
+        document.getElementById('resignBtn').addEventListener('click', () => socket.emit('voteResign'));
+        document.getElementById('restartBtn').addEventListener('click', () => socket.emit('restartGame'));
+        document.getElementById('chat-send').addEventListener('click', sendMsg);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
 
-    socket.on('voteUpdate', (votes) => {
-        const display = document.getElementById('voteDisplay');
-        if (Object.keys(votes).length === 0) { display.innerHTML = "No votes cast yet."; return; }
-        let html = "<strong>Current Crowd Votes:</strong><br>";
-        for (const move in votes) html += `• ${move}: ${votes[move]} vote(s)<br>`;
-        display.innerHTML = html;
-    });
+        socket.on('gameState', (fen) => {
+            board.position(fen);
+            turn = fen.split(' ')[1]; 
+            document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
+            document.getElementById('restartBtn').style.display = 'none';
+            document.getElementById('resignStatus').innerText = '';
+        });
 
-    socket.on('resignProgress', (data) => {
-        const statusDiv = document.getElementById('resignStatus');
-        if (statusDiv) statusDiv.innerText = `Resignation Votes: ${data.count} / ${data.needed} required (51%)`;
-    });
+        socket.on('roleStatus', (status) => {
+            document.getElementById('joinOneBtn').disabled = status.theOneTaken;
+            document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled)' : 'Play as "The One" (White)';
+        });
 
-    socket.on('gameOver', () => document.getElementById('restartBtn').style.display = 'inline-block');
-    socket.on('roleDenied', (msg) => alert(msg));
-    socket.on('invalidRoleAction', (msg) => alert(msg));
-    socket.on('invalidMove', () => alert('Illegal move! Try again.'));
-</script>
+        socket.on('roleAssigned', (role) => {
+            myPlayerRole = role;
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('emoji-bar').style.display = (role === 'theOne') ? 'block' : 'none';
+            
+            if (role === 'theOne') {
+                document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
+                document.getElementById('chat-input').disabled = true;
+                document.getElementById('chat-input').placeholder = "You are eavesdropping...";
+                document.getElementById('chat-send').disabled = true;
+                document.getElementById('chat-send').style.background = '#555';
+            } else {
+                document.getElementById('myRole').innerText = 'Your Role: THE 100 👥';
+            }
+        });
+
+        socket.on('timerStarted', (endTime) => {
+            clearInterval(timerInterval);
+            const timerDisplay = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+                timerDisplay.innerText = timeLeft + 's';
+                if (timeLeft <= 0) clearInterval(timerInterval);
+            }, 100);
+        });
+
+        socket.on('broadcastChatMessage', (data) => {
+            const chatBox = document.getElementById('chat-box');
+            let color = (data.role === 'The One') ? '#f1f2f6' : (data.role === 'Game System' ? '#ff4757' : '#ffa502');
+            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        socket.on('voteUpdate', (votes) => {
+            const display = document.getElementById('voteDisplay');
+            if (Object.keys(votes).length === 0) { display.innerHTML = "No votes cast yet."; return; }
+            let html = "<strong>Current Crowd Votes:</strong><br>";
+            for (const move in votes) html += `• ${move}: ${votes[move]} vote(s)<br>`;
+            display.innerHTML = html;
+        });
+
+        socket.on('resignProgress', (data) => {
+            const statusDiv = document.getElementById('resignStatus');
+            if (statusDiv) statusDiv.innerText = `Resignation Votes: ${data.count} / ${data.needed} required (51%)`;
+        });
+
+        socket.on('gameOver', () => document.getElementById('restartBtn').style.display = 'inline-block');
+        socket.on('roleDenied', (msg) => alert(msg));
+        socket.on('invalidRoleAction', (msg) => alert(msg));
+        socket.on('invalidMove', () => alert('Illegal move! Try again.'));
+    </script>
 </body>
 </html>
