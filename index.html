@@ -99,6 +99,20 @@
             .game-layout { flex-direction: column; align-items: center; gap: 15px; }
             #board-wrapper, #board, #chat-wrapper { width: 95vw; max-width: 400px; }
             #chat-input { width: 65%; }
+
+        #info-box {
+            background: #444;
+            color: #ddd;
+            padding: 15px;
+            border-left: 4px solid #ffa502;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: left;
+            max-width: 320px;
+            width: 100%;
+        }
+    #info-box h3 { margin-top: 0; color: #ffa502; }    
         }
     </style>
 </head>
@@ -110,7 +124,12 @@
         <button id="joinOneBtn" class="btn">Play as "The One" (White)</button>
         <button id="join100Btn" class="btn">Join "The 100" (Black Crowd)</button>
     </div>
-
+    <div id="info-box">
+    <h3>How to Play</h3>
+    <p>One player is <strong>The One</strong> (White), playing standard chess. 
+    The rest of the crowd joins as <strong>The 100</strong> (Black), working together to vote on the best move. 
+    The most popular move wins! Can you coordinate to defeat The One?</p>
+    </div>
     <div id="gameContainer">
         <h1>Checkmate the Crowd</h1>
         <div id="myRole">Role: Assigning...</div>
