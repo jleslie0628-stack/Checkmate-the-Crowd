@@ -260,7 +260,25 @@
         });
 
         socket.on('invalidMove', () => { alert('Illegal move! Try again.'); });
-        socket.on('timeUpdate', (secondsLeft) => { document.getElementById('timer').innerText = secondsLeft + 's'; });
+       // --- NEW TIMER LOGIC ---
+        let timerInterval = null;
+        socket.on('timerStarted', (endTime) => {
+        // Clear any existing client-side timer
+    clearInterval(timerInterval);
+    
+    const timerDisplay = document.getElementById('timer');
+    
+    timerInterval = setInterval(() => {
+        const now = Date.now();
+        const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+        
+        timerDisplay.innerText = timeLeft + 's';
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+        }
+    }, 100); // Updated every 100ms for responsiveness
+});
 
         socket.on('voteUpdate', (votes) => {
             const display = document.getElementById('voteDisplay');
@@ -274,6 +292,7 @@
             }
             display.innerHTML = html;
         });
+        
     </script>
 </body>
 </html>

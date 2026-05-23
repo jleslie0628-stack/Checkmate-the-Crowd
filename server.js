@@ -14,7 +14,7 @@ let theOneSocketId = null;
 let gameStarted = false;
 
 const TURN_TIME_LIMIT = 30;
-let timeRemaining = TURN_TIME_LIMIT;
+let turnEndTime = null;
 let timerInterval = null;
 
 app.use(express.static(__dirname));
@@ -47,17 +47,27 @@ function endGame(message) {
 
 function startTimer() {
     if (!gameStarted) return;
+    
+    // Clear any existing intervals
     clearInterval(timerInterval);
-    timeRemaining = TURN_TIME_LIMIT;
-    io.emit('timeUpdate', timeRemaining);
+    
+    // Set the absolute time when the turn should end
+    turnEndTime = Date.now() + (TURN_TIME_LIMIT * 1000);
+    
+    // Broadcast the end time to all clients
+    io.emit('timerStarted', turnEndTime);
+    
+    // Set an interval to check if time is up
     timerInterval = setInterval(() => {
-        timeRemaining--;
-        io.emit('timeUpdate', timeRemaining);
-        if (timeRemaining <= 0) handleTurnTimeout();
-    }, 1000);
+        if (Date.now() >= turnEndTime) {
+            handleTurnTimeout();
+        }
+    }, 500); // Check every 0.5s to ensure accuracy
 }
 
 function handleTurnTimeout() {
+    clearInterval(timerInterval); // Stop the timer immediately
+    
     if (io.engine.clientsCount === 0) { gameStarted = false; return; }
     
     if (chess.turn() === 'b') {
