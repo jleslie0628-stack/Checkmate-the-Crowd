@@ -171,14 +171,35 @@
             return 'snapback';
         }
 
-        function sendMsg() {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (text.length > 0) {
-                socket.emit('sendChatMessage', text);
-                input.value = '';
-            }
+        // --- Combined and Corrected sendMsg Function ---
+    let lastSentTime = 0;
+
+    function sendMsg() {
+        const now = Date.now();
+        // Cooldown check
+        if (now - lastSentTime < 2000) {
+            alert("You are sending messages too fast!");
+            return;
         }
+
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        
+        if (text.length > 0) {
+            socket.emit('sendChatMessage', text);
+            input.value = '';
+            lastSentTime = now; // Update the timestamp only after a successful send
+        }
+    }
+
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (text.length > 0) {
+        socket.emit('sendChatMessage', text);
+        input.value = '';
+        lastSentTime = now; // Update the timestamp
+    }
+}
 
         document.addEventListener('touchstart', (e) => { 
             if(e.target.closest('#board')) e.preventDefault(); 
