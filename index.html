@@ -143,7 +143,14 @@
                 <div id="board"></div>
                 <div id="voteDisplay" style="margin-top: 15px; color: #aaa; font-family: monospace; font-size: 16px;"></div>
             </div>
-
+        <div id="emoji-bar" style="display:none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center;">
+                <span onclick="socket.emit('sendChatMessage', '👑')">👑</span>
+                <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
+                <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
+                <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
+                <span onclick="socket.emit('sendChatMessage', '😂')">😂</span>
+                <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
+            </div>
             <div id="chat-wrapper">
                 <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
                 <div id="chat-box"></div>
@@ -166,133 +173,112 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
-        const socket = io();
-        let turn = 'w';
-        let myPlayerRole = null;
+    const socket = io();
+    let turn = 'w';
+    let myPlayerRole = null;
+    let timerInterval = null;
 
-        const board = Chessboard('board', {
-            draggable: true,
-            position: 'start',
-            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-            onDrop: onDrop
-        });
+    // Initialize board
+    const board = Chessboard('board', {
+        draggable: true,
+        position: 'start',
+        pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+        onDrop: onDrop
+    });
 
-        document.addEventListener('touchstart', (e) => { 
-            if(e.target.closest('#board')) e.preventDefault(); 
-        }, {passive: false});
+    // --- Functions ---
+    function onDrop(source, target) {
+        if (source === target) return;
+        socket.emit('submitMove', { from: source, to: target });
+        return 'snapback';
+    }
 
-        document.getElementById('joinOneBtn').addEventListener('click', () => { socket.emit('claimRole', 'theOne'); });
-        document.getElementById('join100Btn').addEventListener('click', () => { socket.emit('claimRole', 'the100'); });
-        document.getElementById('resignBtn').addEventListener('click', () => { socket.emit('voteResign'); });
-        document.getElementById('restartBtn').addEventListener('click', () => { socket.emit('restartGame'); });
-
-        socket.on('roleStatus', (status) => {
-            document.getElementById('joinOneBtn').disabled = status.theOneTaken;
-            document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled)' : 'Play as "The One" (White)';
-        });
-
-        socket.on('roleAssigned', (role) => {
-            myPlayerRole = role;
-            document.getElementById('lobby').style.display = 'none';
-            document.getElementById('gameContainer').style.display = 'block';
-            
-            if (role === 'theOne') {
-                document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
-                document.getElementById('chat-input').disabled = true;
-                document.getElementById('chat-input').placeholder = "You are eavesdropping...";
-                document.getElementById('chat-send').disabled = true;
-                document.getElementById('chat-send').style.background = '#555';
-            } else {
-                document.getElementById('myRole').innerText = 'Your Role: THE 100 👥';
-            }
-        });
-
-        function sendMsg() {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (text.length > 0) {
-                socket.emit('sendChatMessage', text);
-                input.value = '';
-            }
+    function sendMsg() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (text.length > 0) {
+            socket.emit('sendChatMessage', text);
+            input.value = '';
         }
+    }
 
-        document.getElementById('chat-send').addEventListener('click', sendMsg);
-        document.getElementById('chat-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMsg();
-        });
+    // --- Event Listeners ---
+    document.addEventListener('touchstart', (e) => { 
+        if(e.target.closest('#board')) e.preventDefault(); 
+    }, {passive: false});
 
-        socket.on('broadcastChatMessage', (data) => {
-            const chatBox = document.getElementById('chat-box');
-            let color = '#ffa502'; 
-            if (data.role === 'The One') color = '#f1f2f6';
-            if (data.role === 'Game System') color = '#ff4757';
-            
-            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
+    document.getElementById('joinOneBtn').addEventListener('click', () => socket.emit('claimRole', 'theOne'));
+    document.getElementById('join100Btn').addEventListener('click', () => socket.emit('claimRole', 'the100'));
+    document.getElementById('resignBtn').addEventListener('click', () => socket.emit('voteResign'));
+    document.getElementById('restartBtn').addEventListener('click', () => socket.emit('restartGame'));
+    document.getElementById('chat-send').addEventListener('click', sendMsg);
+    document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
 
-        socket.on('resignProgress', (data) => {
-            const statusDiv = document.getElementById('resignStatus');
-            if (statusDiv) {
-                statusDiv.innerText = `Resignation Votes: ${data.count} / ${data.needed} required (51%)`;
-            }
-        });
+    // --- Socket Listeners ---
+    socket.on('gameState', (fen) => {
+        board.position(fen);
+        turn = fen.split(' ')[1]; 
+        document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
+        document.getElementById('restartBtn').style.display = 'none';
+        document.getElementById('resignStatus').innerText = '';
+    });
 
-        socket.on('gameOver', () => {
-            document.getElementById('restartBtn').style.display = 'inline-block';
-        });
+    socket.on('roleStatus', (status) => {
+        document.getElementById('joinOneBtn').disabled = status.theOneTaken;
+        document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled)' : 'Play as "The One" (White)';
+    });
 
-        socket.on('roleDenied', (msg) => { alert(msg); });
-        socket.on('invalidRoleAction', (msg) => { alert(msg); });
-
-        function onDrop (source, target) {
-            if (source === target) return;
-            socket.emit('submitMove', { from: source, to: target });
-            return 'snapback';
+    socket.on('roleAssigned', (role) => {
+        myPlayerRole = role;
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('gameContainer').style.display = 'block';
+        document.getElementById('emoji-bar').style.display = (role === 'theOne') ? 'block' : 'none';
+        
+        if (role === 'theOne') {
+            document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
+            document.getElementById('chat-input').disabled = true;
+            document.getElementById('chat-input').placeholder = "You are eavesdropping...";
+            document.getElementById('chat-send').disabled = true;
+            document.getElementById('chat-send').style.background = '#555';
+        } else {
+            document.getElementById('myRole').innerText = 'Your Role: THE 100 👥';
         }
+    });
 
-        socket.on('gameState', (fen) => {
-            board.position(fen);
-            turn = fen.split(' ')[1]; 
-            document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
-            document.getElementById('restartBtn').style.display = 'none';
-            document.getElementById('resignStatus').innerText = '';
-        });
+    socket.on('timerStarted', (endTime) => {
+        clearInterval(timerInterval);
+        const timerDisplay = document.getElementById('timer');
+        timerInterval = setInterval(() => {
+            const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+            timerDisplay.innerText = timeLeft + 's';
+            if (timeLeft <= 0) clearInterval(timerInterval);
+        }, 100);
+    });
 
-        socket.on('invalidMove', () => { alert('Illegal move! Try again.'); });
-       // --- NEW TIMER LOGIC ---
-        let timerInterval = null;
-        socket.on('timerStarted', (endTime) => {
-        // Clear any existing client-side timer
-    clearInterval(timerInterval);
-    
-    const timerDisplay = document.getElementById('timer');
-    
-    timerInterval = setInterval(() => {
-        const now = Date.now();
-        const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
-        
-        timerDisplay.innerText = timeLeft + 's';
-        
-        if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-        }
-    }, 100); // Updated every 100ms for responsiveness
-});
+    socket.on('broadcastChatMessage', (data) => {
+        const chatBox = document.getElementById('chat-box');
+        let color = (data.role === 'The One') ? '#f1f2f6' : (data.role === 'Game System' ? '#ff4757' : '#ffa502');
+        chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
 
-        socket.on('voteUpdate', (votes) => {
-            const display = document.getElementById('voteDisplay');
-            if (Object.keys(votes).length === 0) {
-                display.innerHTML = "No votes cast yet.";
-                return;
-            }
-            let html = "<strong>Current Crowd Votes:</strong><br>";
-            for (const move in votes) {
-                html += `• ${move}: ${votes[move]} vote(s)<br>`;
-            }
-            display.innerHTML = html;
-        });
-        
-    </script>
+    socket.on('voteUpdate', (votes) => {
+        const display = document.getElementById('voteDisplay');
+        if (Object.keys(votes).length === 0) { display.innerHTML = "No votes cast yet."; return; }
+        let html = "<strong>Current Crowd Votes:</strong><br>";
+        for (const move in votes) html += `• ${move}: ${votes[move]} vote(s)<br>`;
+        display.innerHTML = html;
+    });
+
+    socket.on('resignProgress', (data) => {
+        const statusDiv = document.getElementById('resignStatus');
+        if (statusDiv) statusDiv.innerText = `Resignation Votes: ${data.count} / ${data.needed} required (51%)`;
+    });
+
+    socket.on('gameOver', () => document.getElementById('restartBtn').style.display = 'inline-block');
+    socket.on('roleDenied', (msg) => alert(msg));
+    socket.on('invalidRoleAction', (msg) => alert(msg));
+    socket.on('invalidMove', () => alert('Illegal move! Try again.'));
+</script>
 </body>
 </html>
