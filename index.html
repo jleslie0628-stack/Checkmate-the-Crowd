@@ -31,6 +31,20 @@
             width: 90%;
             box-sizing: border-box;
         }
+        #info-box {
+            background: #444;
+            color: #ddd;
+            padding: 15px;
+            border-left: 4px solid #ffa502;
+            border-radius: 5px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: left;
+            max-width: 400px;
+            width: 90%;
+        }
+        #info-box h3 { margin-top: 0; color: #ffa502; }
         .game-logo {
             width: 100%;
             max-width: 350px;
@@ -94,25 +108,12 @@
         #resignBtn { background-color: #ff4757; color: white; }
         #restartBtn { background-color: #2ed573; color: white; display: none; }
         #resignStatus { color: #ff7f50; font-weight: bold; font-size: 14px; }
+        
         @media (max-width: 850px) {
             body { padding: 10px; }
             .game-layout { flex-direction: column; align-items: center; gap: 15px; }
             #board-wrapper, #board, #chat-wrapper { width: 95vw; max-width: 400px; }
             #chat-input { width: 65%; }
-
-        #info-box {
-            background: #444;
-            color: #ddd;
-            padding: 15px;
-            border-left: 4px solid #ffa502;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            text-align: left;
-            max-width: 320px;
-            width: 100%;
-        }
-    #info-box h3 { margin-top: 0; color: #ffa502; }    
         }
     </style>
 </head>
