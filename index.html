@@ -32,6 +32,7 @@
             box-sizing: border-box;
         }
         #info-box {
+            display: none; /* Hide by default */
             background: #444;
             color: #ddd;
             padding: 15px;
@@ -119,17 +120,19 @@
 </head>
 <body>
 
-    <div id="lobby">
-        <img src="Logo.jpg" alt="Checkmate the Crowd Logo" class="game-logo">
-        <h2>Choose Your Side</h2>
-        <button id="joinOneBtn" class="btn">Play as "The One" (White)</button>
-        <button id="join100Btn" class="btn">Join "The 100" (Black Crowd)</button>
-    </div>
+    <div id="lobby-wrapper">
+        <div id="lobby">
+            <img src="Logo.jpg" alt="Checkmate the Crowd Logo" class="game-logo">
+            <h2>Choose Your Side</h2>
+            <button id="joinOneBtn" class="btn">Play as "The One" (White)</button>
+            <button id="join100Btn" class="btn">Join "The 100" (Black Crowd)</button>
+        </div>
     <div id="info-box">
-    <h3>How to Play</h3>
-    <p>One player is <strong>The One</strong> (White), playing standard chess. 
-    The rest of the crowd joins as <strong>The 100</strong> (Black), working together to vote on the best move. 
-    The most popular move wins! Can you coordinate to defeat The One?</p>
+        <h3>How to Play</h3>
+        <p>One player is <strong>The One</strong> (White), playing standard chess. 
+        The rest of the crowd joins as <strong>The 100</strong> (Black), working together to vote on the best move. 
+        The most popular move wins! Can you coordinate to defeat The One?</p>
+        </div>
     </div>
     <div id="gameContainer">
         <h1>Checkmate the Crowd</h1>
@@ -240,6 +243,7 @@
 
         socket.on('roleAssigned', (role) => {
             myPlayerRole = role;
+            document.getElementById('lobby-wrapper').style.display = 'none';
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
             document.getElementById('emoji-bar').style.display = (role === 'theOne') ? 'block' : 'none';
