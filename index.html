@@ -201,8 +201,10 @@
 
         function sendMsg() {
             const now = Date.now();
-            if (now - lastSentTime < 2000) {
-                alert("You are sending messages too fast!");
+            // Change 2000 to 45000 (45 seconds)
+            if (now - lastSentTime < 45000) {
+                const secondsLeft = Math.ceil((45000 - (now - lastSentTime)) / 1000);
+                alert("You are sending messages too fast! Wait " + secondsLeft + "s.");
                 return;
             }
 
