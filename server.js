@@ -4,7 +4,7 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const { Chess } = require('chess.js');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const chess = new Chess();
 
 let votes = {};
@@ -12,6 +12,7 @@ let userVotes = {};
 let resignVotes = new Set();
 let theOneSocketId = null;
 let gameStarted = false;
+let activeConnections = 0;
 
 const TURN_TIME_LIMIT = 30;
 let turnEndTime = null;
@@ -25,7 +26,13 @@ app.get('/', (req, res) => {
 
 const lastMessageTime = new Map();
 
+
 io.on('connection', (socket) => {
+    activeConnections++;
+
+    console.log(`🔌 New WebSocket connection: ${socket.id}`);
+    console.log(`👥 Active connections: ${activeConnections}`);
+
     // Initial State Broadcasts
     socket.emit('gameState', chess.fen());
     socket.emit('voteUpdate', votes);
@@ -69,7 +76,10 @@ io.on('connection', (socket) => {
     });
 
     // Move Submission
-    socket.on('submitMove', (moveData) => {
+    
+socket.on('submitMove', (moveData) => {
+    console.log(`♟ Move from ${socket.id}:`, moveData);
+
         if (chess.turn() === 'w') {
             if (socket.id !== theOneSocketId) return socket.emit('invalidRoleAction', "Not your turn!");
             
@@ -137,15 +147,20 @@ io.on('connection', (socket) => {
     });
 
     // Disconnect
-    socket.on('disconnect', () => {
-        lastMessageTime.delete(socket.id);
-        if (socket.id === theOneSocketId) {
-            theOneSocketId = null;
-            io.emit('roleStatus', { theOneTaken: false });
-        }
-        delete userVotes[socket.id];
-        resignVotes.delete(socket.id);
-    });
+    socket.on('disconnect', (reason) => {
+    activeConnections--;
+
+    console.log(`❌ Disconnected: ${socket.id} (${reason})`);
+    console.log(`👥 Active connections: ${activeConnections}`);
+
+    lastMessageTime.delete(socket.id);
+    if (socket.id === theOneSocketId) {
+        theOneSocketId = null;
+        io.emit('roleStatus', { theOneTaken: false });
+    }
+    delete userVotes[socket.id];
+    resignVotes.delete(socket.id);
+});
 });
 
 // Helper Functions
