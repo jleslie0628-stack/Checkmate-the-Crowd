@@ -133,45 +133,36 @@
         The most popular move wins! Can you coordinate to defeat The One?</p>
         </div>
     </div>
-    <div id="gameContainer">
-        <h1>Checkmate the Crowd</h1>
-        <div id="myRole">Role: Assigning...</div>
-        <div id="status" style="font-size: 20px; font-weight: bold;">Waiting for server...</div>
-        <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30s</div>
-        
-        <div class="game-layout">
-            <div id="board-wrapper">
-                <div id="board"></div>
-                <div id="voteDisplay" style="margin-top: 15px; color: #aaa; font-family: monospace; font-size: 16px;"></div>
-            </div>
-            
-            <div id="chat-wrapper">
-                <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
-                <div id="emoji-bar" style="display:none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center;">
-                    <span onclick="socket.emit('sendChatMessage', '👑')">👑</span>
-                    <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
-                    <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
-                    <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
-                    <span onclick="socket.emit('sendChatMessage', '😂')">😂</span>
-                    <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
-                    <span onclick="socket.emit('sendChatMessage', '😜')">😜</span>
-                    <span onclick="socket.emit('sendChatMessage', '😲')">😲</span>
-                    <span onclick="socket.emit('sendChatMessage', '🤬')">🤬</span>
-                </div>
-                <div id="chat-box"></div>
-                <div id="chat-controls">
-                    <input type="text" id="chat-input" placeholder="Discuss tactics...">
-                    <button id="chat-send">Send</button>
-                </div>
+<div id="gameContainer">
+    <h1>Checkmate the Crowd</h1>
+    <div id="myRole">Role: Assigning...</div>
+    <div id="status" style="font-size: 20px; font-weight: bold;">Waiting for server...</div>
+    <div id="timer" style="font-size: 32px; color: #ff4757; font-weight: bold; margin: 10px 0;">30s</div>
+
+    <div class="game-layout">
+        <div id="board-wrapper">
+            <div id="board"></div>
+            <div id="voteDisplay" style="margin-top: 15px; color: #aaa; font-family: monospace; font-size: 16px;">
+                <div id="top-votes"></div>
+                <div id="remaining-votes" style="display: none; margin-top: 5px; color: #888; border-top: 1px solid #444; padding-top: 5px;"></div>
+                <button id="toggleVotesBtn" style="display: none; margin-top: 5px; background: none; border: 1px solid #ffa502; color: #ffa502; cursor: pointer; border-radius: 3px; font-size: 12px;">Show All Votes</button>
             </div>
         </div>
 
-        <div id="controls-wrapper">
-            <button id="resignBtn" class="btn">Vote to Resign</button>
-            <div id="resignStatus"></div>
-            <button id="restartBtn" class="btn">Restart Match</button>
+        <div id="chat-wrapper">
+            <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
+            <div id="emoji-bar" style="display:none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center;">...</div>
+            <div id="chat-box"></div>
+            <div id="chat-controls">...</div>
         </div>
     </div>
+
+    <div id="controls-wrapper">
+        <button id="resignBtn" class="btn">Vote to Resign</button>
+        <div id="resignStatus"></div>
+        <button id="restartBtn" class="btn">Restart Match</button>
+    </div>
+</div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
@@ -189,6 +180,17 @@
             pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
             onDrop: onDrop
         });
+
+      document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('toggleVotesBtn');
+    const remainingContainer = document.getElementById('remaining-votes');
+
+    toggleBtn.onclick = () => {
+        const isHidden = remainingContainer.style.display === 'none';
+        remainingContainer.style.display = isHidden ? 'block' : 'none';
+        toggleBtn.innerText = isHidden ? 'Hide Other Votes' : 'Show All Votes';
+    };
+});
 
         function onDrop(source, target) {
             if (source === target) return;
@@ -277,13 +279,40 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         });
 
-        socket.on('voteUpdate', (votes) => {
-            const display = document.getElementById('voteDisplay');
-            if (Object.keys(votes).length === 0) { display.innerHTML = "No votes cast yet."; return; }
-            let html = "<strong>Current Crowd Votes:</strong><br>";
-            for (const move in votes) html += `• ${move}: ${votes[move]} vote(s)<br>`;
-            display.innerHTML = html;
+       socket.on('voteUpdate', (votes) => {
+    const topContainer = document.getElementById('top-votes');
+    const remainingContainer = document.getElementById('remaining-votes');
+    const toggleBtn = document.getElementById('toggleVotesBtn');
+
+    if (Object.keys(votes).length === 0) {
+        topContainer.innerHTML = "No votes cast yet.";
+        remainingContainer.style.display = 'none';
+        toggleBtn.style.display = 'none';
+        return;
+    }
+
+    const sortedVotes = Object.entries(votes).sort((a, b) => b[1] - a[1]);
+
+    // Top 3
+    let topHtml = "<strong>Top Crowd Moves:</strong><br>";
+    sortedVotes.slice(0, 3).forEach(([move, count]) => {
+        topHtml += `• ${move}: <strong>${count}</strong><br>`;
+    });
+    topContainer.innerHTML = topHtml;
+
+    // Remaining
+    if (sortedVotes.length > 3) {
+        let remHtml = "";
+        sortedVotes.slice(3).forEach(([move, count]) => {
+            remHtml += `• ${move}: ${count}<br>`;
         });
+        remainingContainer.innerHTML = remHtml;
+        toggleBtn.style.display = 'inline-block';
+    } else {
+        remainingContainer.style.display = 'none';
+        toggleBtn.style.display = 'none';
+    }
+});
 
         socket.on('resignProgress', (data) => {
             const statusDiv = document.getElementById('resignStatus');
