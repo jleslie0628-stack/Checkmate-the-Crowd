@@ -245,10 +245,18 @@
         });
 
         socket.on('voteUpdate', (votes) => {
-            const topContainer = document.getElementById('top-votes');
-            const remainingContainer = document.getElementById('remaining-votes');
-            const toggleBtn = document.getElementById('toggleVotesBtn');
-            
+    const topContainer = document.getElementById('top-votes');
+    const remainingContainer = document.getElementById('remaining-votes');
+    const toggleBtn = document.getElementById('toggleVotesBtn');
+
+    // If the object is empty, the crowd has no votes. Clear the UI!
+    if (!votes || Object.keys(votes).length === 0) {
+        topContainer.innerHTML = "No votes cast yet.";
+        remainingContainer.innerHTML = "";
+        remainingContainer.style.display = 'none';
+        toggleBtn.style.display = 'none';
+        return;
+    }
             if (Object.keys(votes).length === 0) return;
             const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
             

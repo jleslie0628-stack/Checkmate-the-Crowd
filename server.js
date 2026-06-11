@@ -77,19 +77,22 @@ io.on('connection', (socket) => {
 
     // Move Submission
     
-socket.on('submitMove', (moveData) => {
-    console.log(`♟ Move from ${socket.id}:`, moveData);
+// Move Submission
+    socket.on('submitMove', (moveData) => {
+        console.log(`♟ Move from ${socket.id}:`, moveData);
 
+        // --- WHITE'S TURN ---
         if (chess.turn() === 'w') {
             if (socket.id !== theOneSocketId) return socket.emit('invalidRoleAction', "Not your turn!");
             
             try {
                 const move = chess.move({ from: moveData.from, to: moveData.to, promotion: 'q' });
                 if (move) {
+                    // Reset votes after a valid move is made
                     votes = {}; 
                     userVotes = {};
                     io.emit('gameState', chess.fen());
-                    io.emit('voteUpdate', votes);
+                    io.emit('voteUpdate', votes); // Broadcast empty object to clear UI
                     
                     const isOver = checkAndBroadcastStatus();
                     if (!isOver && !chess.isGameOver()) startTimer();
@@ -99,12 +102,15 @@ socket.on('submitMove', (moveData) => {
             } catch (error) {
                 socket.emit('invalidMove');
             }
-        } else {
+        } 
+        // --- BLACK'S TURN ---
+        else {
             if (socket.id === theOneSocketId) return socket.emit('invalidRoleAction', "You cannot vote!");
             
             try {
                 const tempChess = new Chess(chess.fen());
                 if (tempChess.move({ from: moveData.from, to: moveData.to, promotion: 'q' })) {
+                    // Voting logic
                     const moveStr = moveData.from + moveData.to;
                     if (userVotes[socket.id]) {
                         const oldMove = userVotes[socket.id].move;
@@ -112,6 +118,8 @@ socket.on('submitMove', (moveData) => {
                     }
                     userVotes[socket.id] = { move: moveStr };
                     votes[moveStr] = (votes[moveStr] || 0) + 1;
+                    
+                    // Broadcast updated votes
                     io.emit('voteUpdate', votes);
                 } else {
                     socket.emit('invalidMove');
@@ -121,7 +129,6 @@ socket.on('submitMove', (moveData) => {
             }
         }
     });
-
     // Resignation
     socket.on('voteResign', () => {
         if (socket.id === theOneSocketId) endGame("The One has resigned! Black wins.");
