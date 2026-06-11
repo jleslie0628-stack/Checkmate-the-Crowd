@@ -181,167 +181,79 @@
             onDrop: onDrop
         });
 
-      document.addEventListener('DOMContentLoaded', () => {
-    // Helper function to safely add listeners
-    const addListener = (id, event, callback) => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener(event, callback);
-        } else {
-            console.warn(`Element with ID '${id}' not found. Skipping listener.`);
-        }
-    };
+        // 1. DOM Ready: Attach all buttons ONCE
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('joinOneBtn').onclick = () => socket.emit('claimRole', 'theOne');
+            document.getElementById('join100Btn').onclick = () => socket.emit('claimRole', 'the100');
+            document.getElementById('resignBtn').onclick = () => socket.emit('voteResign');
+            document.getElementById('restartBtn').onclick = () => socket.emit('restartGame');
+            document.getElementById('chat-send').onclick = sendMsg;
+            
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
+            }
 
-    // Attach all your listeners safely
-    addListener('joinOneBtn', 'click', () => socket.emit('claimRole', 'theOne'));
-    addListener('join100Btn', 'click', () => socket.emit('claimRole', 'the100'));
-    addListener('resignBtn', 'click', () => socket.emit('voteResign'));
-    addListener('restartBtn', 'click', () => socket.emit('restartGame'));
-    addListener('chat-send', 'click', sendMsg);
-    
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) {
-        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
-    }
-});
-    toggleBtn.onclick = () => {
-        const isHidden = remainingContainer.style.display === 'none';
-        remainingContainer.style.display = isHidden ? 'block' : 'none';
-        toggleBtn.innerText = isHidden ? 'Hide Other Votes' : 'Show All Votes';
-    };
-});
+            const toggleBtn = document.getElementById('toggleVotesBtn');
+            const remainingContainer = document.getElementById('remaining-votes');
+            if (toggleBtn) {
+                toggleBtn.onclick = () => {
+                    const isHidden = remainingContainer.style.display === 'none';
+                    remainingContainer.style.display = isHidden ? 'block' : 'none';
+                    toggleBtn.innerText = isHidden ? 'Hide Other Votes' : 'Show All Votes';
+                };
+            }
+        });
 
+        // 2. Helper Functions
         function onDrop(source, target) {
-            if (source === target) return;
             socket.emit('submitMove', { from: source, to: target });
             return 'snapback';
         }
 
-        // --- Corrected and Cleaned sendMsg Function ---
         let lastSentTime = 0;
-
         function sendMsg() {
-            const now = Date.now();
-            // Change 2000 to 45000 (45 seconds)
-            if (now - lastSentTime < 1000) {
-                const secondsLeft = Math.ceil((1000 - (now - lastSentTime)) / 1000);
-                alert("You are sending messages too fast! Wait " + secondsLeft + "s.");
-                return;
-            }
-
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            
             if (text.length > 0) {
                 socket.emit('sendChatMessage', text);
                 input.value = '';
-                lastSentTime = now;
             }
         }
 
-        document.addEventListener('touchstart', (e) => { 
-            if(e.target.closest('#board')) e.preventDefault(); 
-        }, {passive: false});
-
-        document.getElementById('joinOneBtn').addEventListener('click', () => socket.emit('claimRole', 'theOne'));
-        document.getElementById('join100Btn').addEventListener('click', () => socket.emit('claimRole', 'the100'));
-        document.getElementById('resignBtn').addEventListener('click', () => socket.emit('voteResign'));
-        document.getElementById('restartBtn').addEventListener('click', () => socket.emit('restartGame'));
-        document.getElementById('chat-send').addEventListener('click', sendMsg);
-        document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
-
+        // 3. Socket Events
         socket.on('gameState', (fen) => {
             board.position(fen);
             turn = fen.split(' ')[1]; 
             document.getElementById('status').innerText = (turn === 'w') ? "White's Turn (The One)" : "Black's Turn (The 100 Voting...)";
-            document.getElementById('restartBtn').style.display = 'none';
-            document.getElementById('resignStatus').innerText = '';
-        });
-
-        socket.on('roleStatus', (status) => {
-            document.getElementById('joinOneBtn').disabled = status.theOneTaken;
-            document.getElementById('joinOneBtn').innerText = status.theOneTaken ? 'The One (Filled)' : 'Play as "The One" (White)';
         });
 
         socket.on('roleAssigned', (role) => {
-            myPlayerRole = role;
             document.getElementById('lobby-wrapper').style.display = 'none';
-            document.getElementById('lobby').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
-            document.getElementById('emoji-bar').style.display = (role === 'theOne') ? 'block' : 'none';
+            document.getElementById('myRole').innerText = (role === 'theOne') ? 'Your Role: THE ONE 👑' : 'Your Role: THE 100 👥';
+        });
+
+        socket.on('voteUpdate', (votes) => {
+            const topContainer = document.getElementById('top-votes');
+            const remainingContainer = document.getElementById('remaining-votes');
+            const toggleBtn = document.getElementById('toggleVotesBtn');
             
-            if (role === 'theOne') {
-                document.getElementById('myRole').innerText = 'Your Role: THE ONE 👑';
-                document.getElementById('chat-input').disabled = true;
-                document.getElementById('chat-input').placeholder = "You are eavesdropping...";
-                document.getElementById('chat-send').disabled = true;
-                document.getElementById('chat-send').style.background = '#555';
-            } else {
-                document.getElementById('myRole').innerText = 'Your Role: THE 100 👥';
+            if (Object.keys(votes).length === 0) return;
+            const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
+            
+            topContainer.innerHTML = "<strong>Top Crowd Moves:</strong><br>" + sorted.slice(0, 3).map(v => `• ${v[0]}: <strong>${v[1]}</strong>`).join('<br>');
+            
+            if (sorted.length > 3) {
+                remainingContainer.innerHTML = sorted.slice(3).map(v => `• ${v[0]}: ${v[1]}`).join('<br>');
+                toggleBtn.style.display = 'inline-block';
             }
         });
 
-        socket.on('timerStarted', (endTime) => {
-            clearInterval(timerInterval);
-            const timerDisplay = document.getElementById('timer');
-            timerInterval = setInterval(() => {
-                const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-                timerDisplay.innerText = timeLeft + 's';
-                if (timeLeft <= 0) clearInterval(timerInterval);
-            }, 100);
-        });
-
-        socket.on('broadcastChatMessage', (data) => {
-            const chatBox = document.getElementById('chat-box');
-            let color = (data.role === 'The One') ? '#f1f2f6' : (data.role === 'Game System' ? '#ff4757' : '#ffa502');
-            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
-
-       socket.on('voteUpdate', (votes) => {
-    const topContainer = document.getElementById('top-votes');
-    const remainingContainer = document.getElementById('remaining-votes');
-    const toggleBtn = document.getElementById('toggleVotesBtn');
-
-    if (Object.keys(votes).length === 0) {
-        topContainer.innerHTML = "No votes cast yet.";
-        remainingContainer.style.display = 'none';
-        toggleBtn.style.display = 'none';
-        return;
-    }
-
-    const sortedVotes = Object.entries(votes).sort((a, b) => b[1] - a[1]);
-
-    // Top 3
-    let topHtml = "<strong>Top Crowd Moves:</strong><br>";
-    sortedVotes.slice(0, 3).forEach(([move, count]) => {
-        topHtml += `• ${move}: <strong>${count}</strong><br>`;
-    });
-    topContainer.innerHTML = topHtml;
-
-    // Remaining
-    if (sortedVotes.length > 3) {
-        let remHtml = "";
-        sortedVotes.slice(3).forEach(([move, count]) => {
-            remHtml += `• ${move}: ${count}<br>`;
-        });
-        remainingContainer.innerHTML = remHtml;
-        toggleBtn.style.display = 'inline-block';
-    } else {
-        remainingContainer.style.display = 'none';
-        toggleBtn.style.display = 'none';
-    }
-});
-
-        socket.on('resignProgress', (data) => {
-            const statusDiv = document.getElementById('resignStatus');
-            if (statusDiv) statusDiv.innerText = `Resignation Votes: ${data.count} / ${data.needed} required (51%)`;
-        });
-
+        // Basic status updates
+        socket.on('roleStatus', (s) => document.getElementById('joinOneBtn').disabled = s.theOneTaken);
         socket.on('gameOver', () => document.getElementById('restartBtn').style.display = 'inline-block');
-        socket.on('roleDenied', (msg) => alert(msg));
-        socket.on('invalidRoleAction', (msg) => alert(msg));
-        socket.on('invalidMove', () => alert('Illegal move! Try again.'));
+        socket.on('invalidMove', () => alert('Illegal move!'));
     </script>
 </body>
 </html>
