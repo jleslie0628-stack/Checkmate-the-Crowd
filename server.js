@@ -217,7 +217,8 @@ function handleTurnTimeout() {
     io.emit('voteUpdate', votes);
     const isOver = checkAndBroadcastStatus();
     io.emit('gameState', chess.fen());
-    if (!isOver && !chess.isGameOver()) startTimer();
+    if (!isOver && !chess.isGameOver()) {
+        startTimer();
 }
 
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
