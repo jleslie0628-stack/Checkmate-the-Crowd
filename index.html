@@ -150,25 +150,27 @@
         </div>
 
         <div id="chat-wrapper">
-                <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
-                <div id="emoji-bar" style="display:none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center;">
-                    <span onclick="socket.emit('sendChatMessage', '👑')">👑</span>
-                    <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
-                    <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
-                    <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
-                    <span onclick="socket.emit('sendChatMessage', '😂')">😂</span>
-                    <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
-                    <span onclick="socket.emit('sendChatMessage', '😜')">😜</span>
-                    <span onclick="socket.emit('sendChatMessage', '😲')">😲</span>
-                    <span onclick="socket.emit('sendChatMessage', '🤬')">🤬</span>
-                </div>
-                <div id="chat-box"></div>
-                <div id="chat-controls">
-                    <input type="text" id="chat-input" placeholder="Discuss tactics...">
-                    <button id="chat-send">Send</button>
-                </div>
-            </div>
-        </div>
+    <h3 style="margin-top: 0; color: #ffa502;">Hive Mind Chat</h3>
+    
+    <div id="emoji-bar" style="display:none; margin-bottom: 10px; cursor: pointer; font-size: 22px; text-align: center;">
+        <span onclick="socket.emit('sendChatMessage', '👑')">👑</span>
+        <span onclick="socket.emit('sendChatMessage', '🔥')">🔥</span>
+        <span onclick="socket.emit('sendChatMessage', '🤔')">🤔</span>
+        <span onclick="socket.emit('sendChatMessage', '⚔️')">⚔️</span>
+        <span onclick="socket.emit('sendChatMessage', '😂')">😂</span>
+        <span onclick="socket.emit('sendChatMessage', '😱')">😱</span>
+        <span onclick="socket.emit('sendChatMessage', '😜')">😜</span>
+        <span onclick="socket.emit('sendChatMessage', '😲')">😲</span>
+        <span onclick="socket.emit('sendChatMessage', '🤬')">🤬</span>
+    </div>
+
+    <div id="chat-box"></div>
+
+    <div id="chat-controls">
+        <input type="text" id="chat-input" placeholder="Discuss tactics...">
+        <button id="chat-send">Send</button>
+    </div>
+</div>
 
     <div id="controls-wrapper">
         <button id="resignBtn" class="btn">Vote to Resign</button>
@@ -245,6 +247,11 @@
             document.getElementById('lobby-wrapper').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
             document.getElementById('myRole').innerText = (role === 'theOne') ? 'Your Role: THE ONE 👑' : 'Your Role: THE 100 👥';
+        // Toggle Chat Interface based on role
+    const isOne = (role === 'theOne');
+    document.getElementById('emoji-bar').style.display = isOne ? 'block' : 'none';
+    document.getElementById('chat-controls').style.display = isOne ? 'none' : 'block';
+        
         });
         
         socket.on('timerStarted', (endTime) => {
