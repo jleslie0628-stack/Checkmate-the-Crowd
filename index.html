@@ -263,7 +263,12 @@
                 if (timeLeft <= 0) clearInterval(timerInterval);
             }, 1000); // 1000ms is standard for a 1-second countdown
         });
-
+        socket.on('broadcastChatMessage', (data) => {
+            const chatBox = document.getElementById('chat-box');
+            let color = (data.role === 'The One') ? '#f1f2f6' : (data.role === 'Game System' ? '#ff4757' : '#ffa502');
+            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong style="color: ${color}">${data.role}:</strong> ${data.message}</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
         socket.on('voteUpdate', (votes) => {
     const topContainer = document.getElementById('top-votes');
     const remainingContainer = document.getElementById('remaining-votes');
