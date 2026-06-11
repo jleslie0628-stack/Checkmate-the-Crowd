@@ -148,20 +148,19 @@ socket.on('submitMove', (moveData) => {
 
     // Disconnect
     socket.on('disconnect', (reason) => {
-    activeConnections--;
+        activeConnections--;
+        console.log(`❌ Disconnected: ${socket.id} (${reason})`);
+        console.log(`👥 Active connections: ${activeConnections}`);
 
-    console.log(`❌ Disconnected: ${socket.id} (${reason})`);
-    console.log(`👥 Active connections: ${activeConnections}`);
-
-    lastMessageTime.delete(socket.id);
-    if (socket.id === theOneSocketId) {
-        theOneSocketId = null;
-        io.emit('roleStatus', { theOneTaken: false });
-    }
-    delete userVotes[socket.id];
-    resignVotes.delete(socket.id);
-});
-});
+        lastMessageTime.delete(socket.id);
+        if (socket.id === theOneSocketId) {
+            theOneSocketId = null;
+            io.emit('roleStatus', { theOneTaken: false });
+        }
+        delete userVotes[socket.id];
+        resignVotes.delete(socket.id);
+    }); // Closes 'disconnect'
+}); // <--- THIS WAS LIKELY MISSING: Closes 'io.on(connection)'
 
 // Helper Functions
 function checkAndBroadcastStatus() {
@@ -217,8 +216,7 @@ function handleTurnTimeout() {
     io.emit('voteUpdate', votes);
     const isOver = checkAndBroadcastStatus();
     io.emit('gameState', chess.fen());
-    if (!isOver && !chess.isGameOver()) {
-        startTimer();
+    if (!isOver && !chess.isGameOver()) startTimer();
 }
 
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
