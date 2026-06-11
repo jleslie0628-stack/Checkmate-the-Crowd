@@ -233,6 +233,16 @@
             document.getElementById('gameContainer').style.display = 'block';
             document.getElementById('myRole').innerText = (role === 'theOne') ? 'Your Role: THE ONE 👑' : 'Your Role: THE 100 👥';
         });
+        
+        socket.on('timerStarted', (endTime) => {
+            clearInterval(timerInterval);
+            const timerDisplay = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+                timerDisplay.innerText = timeLeft + 's';
+                if (timeLeft <= 0) clearInterval(timerInterval);
+            }, 1000); // 1000ms is standard for a 1-second countdown
+        });
 
         socket.on('voteUpdate', (votes) => {
             const topContainer = document.getElementById('top-votes');
