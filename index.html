@@ -182,9 +182,28 @@
         });
 
       document.addEventListener('DOMContentLoaded', () => {
-    const toggleBtn = document.getElementById('toggleVotesBtn');
-    const remainingContainer = document.getElementById('remaining-votes');
+    // Helper function to safely add listeners
+    const addListener = (id, event, callback) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener(event, callback);
+        } else {
+            console.warn(`Element with ID '${id}' not found. Skipping listener.`);
+        }
+    };
 
+    // Attach all your listeners safely
+    addListener('joinOneBtn', 'click', () => socket.emit('claimRole', 'theOne'));
+    addListener('join100Btn', 'click', () => socket.emit('claimRole', 'the100'));
+    addListener('resignBtn', 'click', () => socket.emit('voteResign'));
+    addListener('restartBtn', 'click', () => socket.emit('restartGame'));
+    addListener('chat-send', 'click', sendMsg);
+    
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
+    }
+});
     toggleBtn.onclick = () => {
         const isHidden = remainingContainer.style.display === 'none';
         remainingContainer.style.display = isHidden ? 'block' : 'none';
