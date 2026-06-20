@@ -1,4 +1,4 @@
-Checkmate the Crowd ♟️👥
+![Game Master](Logo.jpg)
 
 Checkmate the Crowd is a real-time, interactive chess experience where one player faces off against a "Hive Mind" of voters. While "The One" makes individual moves, "The 100" (the crowd) must coordinate and vote on every move to decide their collective strategy.
 
