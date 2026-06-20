@@ -31,20 +31,26 @@ Real-time Engine: Socket.io
 Clone the repository:
 
 Bash
+
 git clone https://github.com/jleslie0628-stack/Checkmate-the-Crowd
-Install dependencies:
+
+🛠️ Install dependencies:
 
 Bash
+
 npm install
 
-Start the server:
+💻 Start the server:
 
 Bash
+
 node server.js
+
 Open your browser and navigate to http://localhost:3000.
 
 📸 Project Preview
-(Feel free to upload a screenshot of your game board here!)
+
+Feel free to check it out at https://checkmatethecrowd.live/
 
 🤝 Contributing
 Contributions are welcome! If you have ideas for new features or improvements, feel free to open an issue or submit a pull request.
